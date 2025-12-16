@@ -1,6 +1,67 @@
+# RStudio / R
 .Rproj.user
 .Rhistory
 .Rdata
+.Rcheck/
+*.tar.gz
+
+# Auth
 .httr-oauth
+
+# OS
 .DS_Store
+
+# Quarto
 .quarto
+
+# Raster data
+*.tif
+*.tiff
+*.vrt
+*.img
+*.asc
+*.nc
+
+# Vector data
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.geojson
+*.json
+
+# LiDAR
+*.las
+*.laz
+
+# Derived data
+data/
+output/
+outputs/
+processing/
+tmp/
+temp/
+
+# Logs
+*.log
+*.out
+*.err
+slurm-*.out
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+venv/
+
+# Editor
+*.swp
+
+# Allow small test data
+!inst/extdata/*.gpkg
+!inst/extdata/*.tif
