@@ -1,170 +1,164 @@
-#' Reproject, clip, and resample rasters to a common grid
+# -------------------------------------------------------------------
+#' Reproject, clip, and resample rasters to a common grid.
+#' The resampling method is based on the name of the rasters in the
+#' *named* list of `terra::SpatRaster` objects.
+#' LC or WFS --> nearest neighbour
+#' else --> bilinear
 #'
-#' @param target_epsg Integer EPSG code (e.g. 25832)
-#' @param resolution Target resolution in map units (meters)
-#' @param extent_gpkg GeoPackage defining the clipping extent
-#' @param out_dir Output directory
-#' @param rasters Character vector of input raster paths
+#' @param aoi An `sf` or `sfc` object defining the area of interest.
+#' @param target_epsg Integer EPSG code (e.g. 25832).
+#' @param resolution Target resolution in map units (e.g. meters).
+#' @param rasters A named list of `terra::SpatRaster` objects.
+#' @param out_dir Optional output directory. If NULL, nothing is written
+#'   to disk and rasters are returned in memory.
 #'
-#' @return Invisibly returns vector of output file paths
+#' @return A named list of processed `terra::SpatRaster` objects.
 #'
 #' @examples
 #' \dontrun{
-#' # Example using a small AOI and dummy raster paths
-#' aoi <- system.file(
-#'   "extdata",
-#'   "test_aoi.gpkg",
-#'   package = "PALMPrepR"
+#' library(sf)
+#' library(terra)
+#'
+#' aoi <- st_read("inst/extdata/test_aoi.gpkg")
+#'
+#' rasters <- list(
+#'   DEM = rast("DEM.tif"),
+#'   LC  = rast("LC.tif"),
+#'   WSF = rast("WSF.tif")
 #' )
 #'
-#' process_raster_files(
-#'   target_epsg = 25832,
-#'   resolution  = 1,
-#'   extent_gpkg = aoi,
-#'   out_dir     = tempdir(),
-#'   rasters     = c(
-#'     "DGM.tif",
-#'     "LC.tif",
-#'     "WSF.tif"
-#'   )
+#' out <- process_raster_files(
+#'   aoi          = aoi,
+#'   target_epsg  = 25832,
+#'   resolution   = 1,
+#'   rasters      = rasters,
+#'   out_dir      = tempdir()
 #' )
+#'
+#' out$DEM
 #' }
 #'
-
 #' @export
 process_raster_files <- function(
+    aoi,
     target_epsg,
     resolution,
-    extent_gpkg,
-    out_dir,
-    rasters
+    rasters,
+    out_dir = NULL
 ) {
 
-  if (!length(rasters)) {
-    stop("No input rasters provided.")
+  # ---------------------------------------------------------------
+  # Validation
+  # ---------------------------------------------------------------
+
+  if (!inherits(aoi, c("sf", "sfc"))) {
+    stop("`aoi` must be an sf or sfc object.", call. = FALSE)
   }
 
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  if (!length(rasters)) {
+    stop("No input rasters provided.", call. = FALSE)
+  }
+
+  if (!all(vapply(rasters, inherits, logical(1), "SpatRaster"))) {
+    stop("All elements of `rasters` must be terra::SpatRaster objects.",
+         call. = FALSE)
+  }
+
+  if (is.null(names(rasters)) || any(names(rasters) == "")) {
+    stop("`rasters` must be a *named* list.", call. = FALSE)
+  }
+
+  if (!is.null(out_dir)) {
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  }
 
   message("==========================================================")
   message(" Target CRS:        EPSG:", target_epsg)
-  message(" Target Resolution: ", resolution, " m")
-  message(" Clip Extent:       ", extent_gpkg)
-  message(" Output Directory:  ", out_dir)
+  message(" Target Resolution: ", resolution)
   message("==========================================================\n")
 
-  # ------------------------------------------------------------------
-  # Read and reproject extent
-  # ------------------------------------------------------------------
-  ext_sf <- sf::st_read(extent_gpkg, quiet = TRUE)
-  ext_sf <- sf::st_transform(ext_sf, target_epsg)
-  ext_vect <- terra::vect(ext_sf)
+  # ---------------------------------------------------------------
+  # Prepare AOI
+  # ---------------------------------------------------------------
 
-  # ------------------------------------------------------------------
-  # Loop over rasters
-  # ------------------------------------------------------------------
-  outputs <- character()
+  aoi_geom <- sf::st_geometry(aoi)
+  aoi_geom <- sf::st_transform(aoi_geom, target_epsg)
+  aoi_vect <- terra::vect(aoi_geom)
 
-  for (r_path in rasters) {
+  # ---------------------------------------------------------------
+  # Create reference grid (from AOI)
+  # ---------------------------------------------------------------
 
-    basename <- tools::file_path_sans_ext(basename(r_path))
-    outfile  <- file.path(
-      out_dir,
-      sprintf("%s_grid_%sm.tif", basename, resolution)
-    )
+  ref_grid <- terra::rast(
+    terra::ext(aoi_vect),
+    resolution = resolution,
+    crs = paste0("EPSG:", target_epsg)
+  )
 
-    message("---- Processing ", r_path, " ----")
-    message("Output -> ", outfile)
+  # ---------------------------------------------------------------
+  # Process rasters
+  # ---------------------------------------------------------------
+
+  outputs <- list()
+
+  for (name in names(rasters)) {
+
+    message("---- Processing ", name, " ----")
+
+    r <- rasters[[name]]
 
     # Determine resampling method
-    if (grepl("LC|WSF", basename, ignore.case = TRUE)) {
-      method <- "near"
+    method <- if (grepl("LC|WSF", name, ignore.case = TRUE)) {
+      "near"
     } else {
-      method <- "bilinear"
+      "bilinear"
     }
 
-    # ----------------------------------------------------------------
-    # Read raster
-    # ----------------------------------------------------------------
-    r <- terra::rast(r_path)
-
-    # ----------------------------------------------------------------
-    # Project to target CRS
-    # ----------------------------------------------------------------
+    # Reproject
     r_proj <- terra::project(
       r,
-      paste0("EPSG:", target_epsg),
+      terra::crs(ref_grid),
       method = method
     )
 
-    # ----------------------------------------------------------------
-    # Create target grid
-    # ----------------------------------------------------------------
-    target_grid <- terra::rast(
-      terra::ext(ext_vect),
-      resolution = resolution,
-      crs = terra::crs(r_proj)
-    )
-
-    # ----------------------------------------------------------------
-    # Resample onto target grid
-    # ----------------------------------------------------------------
+    # Resample to reference grid
     r_resampled <- terra::resample(
       r_proj,
-      target_grid,
+      ref_grid,
       method = method
     )
 
-    # ----------------------------------------------------------------
-    # Crop & mask to AOI
-    # ----------------------------------------------------------------
-    r_clipped <- terra::crop(r_resampled, ext_vect)
-    r_clipped <- terra::mask(r_clipped, ext_vect)
+    # Crop and mask
+    r_clipped <- terra::crop(r_resampled, aoi_vect)
+    r_clipped <- terra::mask(r_clipped, aoi_vect)
 
-    # ----------------------------------------------------------------
-    # Write output
-    # ----------------------------------------------------------------
-    terra::writeRaster(
-      r_clipped,
-      outfile,
-      overwrite = TRUE,
-      NAflag = -9999,
-      wopt = list(
-        gdal = c("COMPRESS=DEFLATE", "TILED=YES")
+    outputs[[name]] <- r_clipped
+
+    # Optional writing to disk
+    if (!is.null(out_dir)) {
+
+      outfile <- file.path(
+        out_dir,
+        sprintf("%s_grid_%sm.tif", name, resolution)
       )
-    )
 
-    message("[INFO] Finished ", outfile, "\n")
+      terra::writeRaster(
+        r_clipped,
+        outfile,
+        overwrite = TRUE,
+        NAflag = -9999,
+        wopt = list(
+          gdal = c("COMPRESS=DEFLATE", "TILED=YES")
+        )
+      )
 
-    outputs <- c(outputs, outfile)
-
-    # ----------------------------------------------------------------
-    # Terrain detection (same logic as shell script)
-    # ----------------------------------------------------------------
-    if (grepl("DGM|terrain|DEM", basename, ignore.case = TRUE)) {
-      static_input <- "/dss/dsshome1/00/di97paz/container_palm/data_MUC/palm_csd_ready"
-      dest <- file.path(static_input, "MUC_terrain_height.tif")
-
-      message("Detected terrain file (", basename, "). Copying to:")
-      message("    ", dest)
-
-      file.copy(outfile, dest, overwrite = TRUE)
+      message("Output -> ", outfile)
     }
-  }
 
-  # ------------------------------------------------------------------
-  # Summary check
-  # ------------------------------------------------------------------
-  message("---- Checking results ----")
-
-  for (f in outputs) {
-    r <- terra::rast(f)
-    message(basename(f), ":")
-    message("  CRS:  ", terra::crs(r))
-    message("  Res:  ", paste(terra::res(r), collapse = " x "))
+    message("[INFO] Finished ", name, "\n")
   }
 
   message("[INFO] All rasters processed successfully!")
 
-  invisible(outputs)
+  outputs
 }

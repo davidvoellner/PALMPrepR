@@ -2,47 +2,58 @@
 % Please edit documentation in R/process_raster_files.R
 \name{process_raster_files}
 \alias{process_raster_files}
-\title{Reproject, clip, and resample rasters to a common grid}
+\title{Reproject, clip, and resample rasters to a common grid.
+The resampling method is based on the name of the rasters in the
+\emph{named} list of \code{terra::SpatRaster} objects.
+LC or WFS --> nearest neighbour
+else --> bilinear}
 \usage{
-process_raster_files(target_epsg, resolution, extent_gpkg, out_dir, rasters)
+process_raster_files(aoi, target_epsg, resolution, rasters, out_dir = NULL)
 }
 \arguments{
-\item{target_epsg}{Integer EPSG code (e.g. 25832)}
+\item{aoi}{An \code{sf} or \code{sfc} object defining the area of interest.}
 
-\item{resolution}{Target resolution in map units (meters)}
+\item{target_epsg}{Integer EPSG code (e.g. 25832).}
 
-\item{extent_gpkg}{GeoPackage defining the clipping extent}
+\item{resolution}{Target resolution in map units (e.g. meters).}
 
-\item{out_dir}{Output directory}
+\item{rasters}{A named list of \code{terra::SpatRaster} objects.}
 
-\item{rasters}{Character vector of input raster paths}
+\item{out_dir}{Optional output directory. If NULL, nothing is written
+to disk and rasters are returned in memory.}
 }
 \value{
-Invisibly returns vector of output file paths
+A named list of processed \code{terra::SpatRaster} objects.
 }
 \description{
-Reproject, clip, and resample rasters to a common grid
+Reproject, clip, and resample rasters to a common grid.
+The resampling method is based on the name of the rasters in the
+\emph{named} list of \code{terra::SpatRaster} objects.
+LC or WFS --> nearest neighbour
+else --> bilinear
 }
 \examples{
 \dontrun{
-# Example using a small AOI and dummy raster paths
-aoi <- system.file(
-  "extdata",
-  "test_aoi.gpkg",
-  package = "PALMPrepR"
+library(sf)
+library(terra)
+
+aoi <- st_read("inst/extdata/test_aoi.gpkg")
+
+rasters <- list(
+  DEM = rast("DEM.tif"),
+  LC  = rast("LC.tif"),
+  WSF = rast("WSF.tif")
 )
 
-process_raster_files(
-  target_epsg = 25832,
-  resolution  = 1,
-  extent_gpkg = aoi,
-  out_dir     = tempdir(),
-  rasters     = c(
-    "DGM.tif",
-    "LC.tif",
-    "WSF.tif"
-  )
+out <- process_raster_files(
+  aoi          = aoi,
+  target_epsg  = 25832,
+  resolution   = 1,
+  rasters      = rasters,
+  out_dir      = tempdir()
 )
+
+out$DEM
 }
 
 }
