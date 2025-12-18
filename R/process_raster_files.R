@@ -1,9 +1,10 @@
 # -------------------------------------------------------------------
 #' Reproject, clip, and resample rasters to a common grid.
+#'
 #' The resampling method is based on the name of the rasters in the
 #' *named* list of `terra::SpatRaster` objects.
-#' LC or WFS --> nearest neighbour
-#' else --> bilinear
+#' (LC or WSF --> nearest neighbour,
+#' else --> bilinear)
 #'
 #' @param aoi An `sf` or `sfc` object defining the area of interest.
 #' @param target_epsg Integer EPSG code (e.g. 25832).
@@ -13,30 +14,6 @@
 #'   to disk and rasters are returned in memory.
 #'
 #' @return A named list of processed `terra::SpatRaster` objects.
-#'
-#' @examples
-#' \dontrun{
-#' library(sf)
-#' library(terra)
-#'
-#' aoi <- st_read("inst/extdata/test_aoi.gpkg")
-#'
-#' rasters <- list(
-#'   DEM = rast("DEM.tif"),
-#'   LC  = rast("LC.tif"),
-#'   WSF = rast("WSF.tif")
-#' )
-#'
-#' out <- process_raster_files(
-#'   aoi          = aoi,
-#'   target_epsg  = 25832,
-#'   resolution   = 1,
-#'   rasters      = rasters,
-#'   out_dir      = tempdir()
-#' )
-#'
-#' out$DEM
-#' }
 #'
 #' @export
 process_raster_files <- function(
@@ -72,7 +49,6 @@ process_raster_files <- function(
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   }
 
-  message("==========================================================")
   message(" Target CRS:        EPSG:", target_epsg)
   message(" Target Resolution: ", resolution)
   message("==========================================================\n")
@@ -86,11 +62,18 @@ process_raster_files <- function(
   aoi_vect <- terra::vect(aoi_geom)
 
   # ---------------------------------------------------------------
-  # Create reference grid (from AOI)
+  # Create reference grid (snapped to integer resolution)
   # ---------------------------------------------------------------
 
+  raw_ext <- terra::ext(aoi_vect)
+
+  snapped_ext <- .snap_extent(
+    raw_ext,
+    resolution
+  )
+
   ref_grid <- terra::rast(
-    terra::ext(aoi_vect),
+    snapped_ext,
     resolution = resolution,
     crs = paste0("EPSG:", target_epsg)
   )
@@ -103,7 +86,7 @@ process_raster_files <- function(
 
   for (name in names(rasters)) {
 
-    message("---- Processing ", name, " ----")
+    message("- Processing ", name)
 
     r <- rasters[[name]]
 
@@ -155,10 +138,10 @@ process_raster_files <- function(
       message("Output -> ", outfile)
     }
 
-    message("[INFO] Finished ", name, "\n")
+    message("Processing ", name, " finished\n")
   }
 
-  message("[INFO] All rasters processed successfully!")
+  message("All rasters processed successfully!")
 
   outputs
 }
