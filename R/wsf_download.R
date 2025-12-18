@@ -91,7 +91,7 @@ reproject_bounds <- function(bounds, src_crs, dst_crs = 4326) {
 #' list.files(out_dir)
 #'}
 
-
+#' @export
 download_wsf_tiles <- function(gpkg_file, out_dir) {
 
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
