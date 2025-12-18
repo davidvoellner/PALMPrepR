@@ -10,7 +10,7 @@ download_wsf_data(aoi)
 \item{aoi}{An \code{sf} or \code{sfc} object defining the area of interest.}
 }
 \value{
-A single \code{terra::SpatRaster} clipped to the AOI.
+A \code{terra::SpatRaster} clipped to the AOI.
 }
 \description{
 Downloads all WSF Evolution raster tiles (2×2 degree grid)

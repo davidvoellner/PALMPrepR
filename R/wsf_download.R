@@ -1,12 +1,8 @@
-# -------------------------------------------------------------------
 # Configuration
-# -------------------------------------------------------------------
 
 BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 
-# -------------------------------------------------------------------
 # Internal helper functions
-# -------------------------------------------------------------------
 
 .validate_aoi <- function(aoi) {
 
@@ -60,7 +56,7 @@ BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 #'
 #' @param aoi An `sf` or `sfc` object defining the area of interest.
 #'
-#' @return A single `terra::SpatRaster` clipped to the AOI.
+#' @return A `terra::SpatRaster` clipped to the AOI.
 #'
 #' @examples
 #' \dontrun{
@@ -80,7 +76,7 @@ download_wsf_data <- function(aoi) {
   # --- validate AOI ---
   geom <- .validate_aoi(aoi)
 
-  # --- reproject AOI to WGS84 for tile logic ---
+  # --- reproject AOI to WGS84 ---
   geom_4326 <- sf::st_transform(geom, 4326)
   bbox <- sf::st_bbox(geom_4326)
 
