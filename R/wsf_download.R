@@ -5,140 +5,143 @@
 BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 
 # -------------------------------------------------------------------
-# Helper functions (internal)
+# Internal helper functions
 # -------------------------------------------------------------------
 
-tile_name <- function(lon, lat) {
+.validate_aoi <- function(aoi) {
+
+  if (inherits(aoi, "sf")) {
+    geom <- sf::st_geometry(aoi)
+  } else if (inherits(aoi, "sfc")) {
+    geom <- aoi
+  } else {
+    stop("AOI must be an sf or sfc object.", call. = FALSE)
+  }
+
+  if (!any(sf::st_geometry_type(geom) %in%
+           c("POLYGON", "MULTIPOLYGON"))) {
+    stop("AOI geometry must be POLYGON or MULTIPOLYGON.", call. = FALSE)
+  }
+
+  if (is.na(sf::st_crs(geom))) {
+    stop("AOI must have a valid CRS.", call. = FALSE)
+  }
+
+  geom
+}
+
+.tile_name <- function(lon, lat) {
   sprintf("WSFevolution_v1_%d_%d.tif", lon, lat)
 }
 
-download_file <- function(url, output_path) {
-  message("Downloading ", output_path, " ...")
+.download_wsf_raster <- function(url) {
+
+  tmp <- tempfile(fileext = ".tif")
 
   resp <- httr::GET(
     url,
-    httr::write_disk(output_path, overwrite = TRUE),
+    httr::write_disk(tmp, overwrite = TRUE),
     httr::progress()
   )
 
-  if (httr::status_code(resp) == 200) {
-    message("Saved ", output_path)
-  } else {
-    warning(
-      sprintf(
-        "Failed (HTTP %d) for %s",
-        httr::status_code(resp),
-        url
-      )
-    )
+  if (httr::status_code(resp) != 200) {
+    stop("Failed to download WSF tile: ", url, call. = FALSE)
   }
-}
 
-read_extent_and_crs <- function(gpkg_path) {
-  layer_info <- sf::st_layers(gpkg_path)
-  layer <- layer_info$name[1]
-
-  x <- sf::st_read(gpkg_path, layer = layer, quiet = TRUE)
-
-  list(
-    bounds = sf::st_bbox(x),
-    crs    = sf::st_crs(x)
-  )
-}
-
-reproject_bounds <- function(bounds, src_crs, dst_crs = 4326) {
-
-  poly <- sf::st_as_sfc(bounds)
-  sf::st_crs(poly) <- src_crs
-
-  poly_4326 <- sf::st_transform(poly, dst_crs)
-
-  list(
-    bounds = sf::st_bbox(poly_4326),
-    geom   = poly_4326
-  )
+  terra::rast(tmp)
 }
 
 # -------------------------------------------------------------------
-#' Download WSF Evolution tiles intersecting an AOI
+#' Download, merge, and clip WSF Evolution data to an AOI
 #'
-#' Downloads all WSF Evolution raster tiles (2×2 degree grid) that
-#' intersect the spatial extent of an input AOI provided as a GeoPackage.
-#' The AOI is automatically reprojected to EPSG:4326 for tile selection.
+#' Downloads all WSF Evolution raster tiles (2×2 degree grid)
+#' intersecting an AOI, mosaics them, and clips the result
+#' exactly to the AOI.
 #'
-#' @param gpkg_file Path to a GeoPackage defining the AOI extent.
-#' @param out_dir Output directory for downloaded WSF tiles.
+#' @param aoi An `sf` or `sfc` object defining the area of interest.
 #'
-#' @return Invisibly returns the output directory.
+#' @return A single `terra::SpatRaster` clipped to the AOI.
 #'
 #' @examples
 #' \dontrun{
-#' # Use the example AOI shipped with the package
-#' aoi <- system.file(
-#'   "extdata",
-#'   "test_aoi.gpkg",
-#'   package = "PALMPrepR"
-#' )
+#' library(sf)
 #'
-#' out_dir <- file.path(tempdir(), "wsf_tiles")
-#' dir.create(out_dir, showWarnings = FALSE)
+#' aoi <- st_read("inst/extdata/test_aoi.gpkg")
 #'
-#' download_wsf_tiles(
-#'   gpkg_file = aoi,
-#'   out_dir   = out_dir
-#' )
+#' wsf <- download_wsf_data(aoi)
 #'
-#' list.files(out_dir)
-#'}
-
+#' wsf
+#' terra::plot(wsf)
+#' }
+#'
 #' @export
-download_wsf_tiles <- function(gpkg_file, out_dir) {
+download_wsf_data <- function(aoi) {
 
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  # --- validate AOI ---
+  geom <- .validate_aoi(aoi)
 
-  message("Reading extent from ", gpkg_file, " ...")
+  # --- reproject AOI to WGS84 for tile logic ---
+  geom_4326 <- sf::st_transform(geom, 4326)
+  bbox <- sf::st_bbox(geom_4326)
 
-  info <- read_extent_and_crs(gpkg_file)
-  reproj <- reproject_bounds(info$bounds, info$crs)
+  # --- determine intersecting 2×2 degree tiles ---
+  lon_start <- floor(bbox["xmin"] / 2) * 2
+  lon_end   <- ceiling(bbox["xmax"] / 2) * 2
+  lat_start <- floor(bbox["ymin"] / 2) * 2
+  lat_end   <- ceiling(bbox["ymax"] / 2) * 2
 
-  b <- reproj$bounds
-  geom4326 <- reproj$geom
-
-  lon_start <- floor(b["xmin"] / 2) * 2
-  lon_end   <- ceiling(b["xmax"] / 2) * 2
-  lat_start <- floor(b["ymin"] / 2) * 2
-  lat_end   <- ceiling(b["ymax"] / 2) * 2
-
-  tiles <- list()
+  tile_coords <- list()
 
   for (lon in seq(lon_start, lon_end - 2, by = 2)) {
     for (lat in seq(lat_start, lat_end - 2, by = 2)) {
 
       tile_geom <- sf::st_as_sfc(
         sf::st_bbox(
-          c(xmin = lon, ymin = lat, xmax = lon + 2, ymax = lat + 2),
+          c(
+            xmin = lon,
+            ymin = lat,
+            xmax = lon + 2,
+            ymax = lat + 2
+          ),
           crs = 4326
         )
       )
 
-      if (sf::st_intersects(geom4326, tile_geom, sparse = FALSE)) {
-        tiles <- append(tiles, list(c(lon, lat)))
+      if (sf::st_intersects(geom_4326, tile_geom, sparse = FALSE)) {
+        tile_coords[[paste(lon, lat, sep = "_")]] <- c(lon, lat)
       }
     }
   }
 
-  if (!length(tiles)) {
-    message("No tiles intersect the GPKG extent.")
-    return(invisible(NULL))
+  if (!length(tile_coords)) {
+    stop("No WSF tiles intersect AOI.", call. = FALSE)
   }
 
-  for (t in tiles) {
-    filename <- tile_name(t[1], t[2])
-    download_file(
-      paste0(BASE_URL, filename),
-      file.path(out_dir, filename)
-    )
+  # --- download tiles ---
+  rasters <- lapply(
+    tile_coords,
+    function(t) {
+      url <- paste0(BASE_URL, .tile_name(t[1], t[2]))
+      .download_wsf_raster(url)
+    }
+  )
+
+  # --- ensure rasters exist ---
+  if (length(rasters) == 0) {
+    stop("WSF tiles were identified but none could be downloaded.", call. = FALSE)
   }
 
-  invisible(out_dir)
+  # --- mosaic tiles ---
+  wsf_merged <- Reduce(terra::mosaic, rasters)
+
+
+  # --- clip & mask to AOI ---
+  aoi_vect <- terra::vect(geom_4326)
+
+  wsf_clipped <- terra::mask(
+    terra::crop(wsf_merged, aoi_vect),
+    aoi_vect
+  )
+
+  wsf_clipped
 }

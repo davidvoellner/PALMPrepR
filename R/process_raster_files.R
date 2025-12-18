@@ -98,19 +98,12 @@ process_raster_files <- function(
     )
 
     # ----------------------------------------------------------------
-    # Create target grid (equivalent to -tap -tr)
+    # Create target grid
     # ----------------------------------------------------------------
     target_grid <- terra::rast(
       terra::ext(ext_vect),
       resolution = resolution,
       crs = terra::crs(r_proj)
-    )
-
-    # Snap grid to resolution (GDAL -tap equivalent)
-    terra::ext(target_grid) <- terra::align(
-      terra::ext(target_grid),
-      resolution,
-      snap = "near"
     )
 
     # ----------------------------------------------------------------
