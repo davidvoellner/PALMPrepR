@@ -7,6 +7,30 @@
 #' @param rasters Character vector of input raster paths
 #'
 #' @return Invisibly returns vector of output file paths
+#'
+#' @examples
+#' \dontrun{
+#' # Example using a small AOI and dummy raster paths
+#' aoi <- system.file(
+#'   "extdata",
+#'   "test_aoi.gpkg",
+#'   package = "PALMPrepR"
+#' )
+#'
+#' process_raster_files(
+#'   target_epsg = 25832,
+#'   resolution  = 1,
+#'   extent_gpkg = aoi,
+#'   out_dir     = tempdir(),
+#'   rasters     = c(
+#'     "DGM.tif",
+#'     "LC.tif",
+#'     "WSF.tif"
+#'   )
+#' )
+#' }
+#'
+
 #' @export
 process_raster_files <- function(
     target_epsg,

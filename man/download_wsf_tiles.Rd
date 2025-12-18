@@ -20,6 +20,7 @@ intersect the spatial extent of an input AOI provided as a GeoPackage.
 The AOI is automatically reprojected to EPSG:4326 for tile selection.
 }
 \examples{
+\dontrun{
 # Use the example AOI shipped with the package
 aoi <- system.file(
   "extdata",
@@ -36,5 +37,5 @@ download_wsf_tiles(
 )
 
 list.files(out_dir)
-
+}
 }
