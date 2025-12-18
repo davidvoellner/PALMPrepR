@@ -72,6 +72,7 @@ reproject_bounds <- function(bounds, src_crs, dst_crs = 4326) {
 #' @return Invisibly returns the output directory.
 #'
 #' @examples
+#' \dontrun{
 #' # Use the example AOI shipped with the package
 #' aoi <- system.file(
 #'   "extdata",
@@ -88,11 +89,8 @@ reproject_bounds <- function(bounds, src_crs, dst_crs = 4326) {
 #' )
 #'
 #' list.files(out_dir)
-#'
-#' @export
-download_wsf_tiles <- function(gpkg_file, out_dir) {
-  ...
-}
+#'}
+
 
 download_wsf_tiles <- function(gpkg_file, out_dir) {
 
