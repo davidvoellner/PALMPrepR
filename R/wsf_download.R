@@ -4,49 +4,6 @@ BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 
 # Internal helper functions
 
-.validate_aoi <- function(aoi) {
-
-  if (inherits(aoi, "sf")) {
-    geom <- sf::st_geometry(aoi)
-  } else if (inherits(aoi, "sfc")) {
-    geom <- aoi
-  } else {
-    stop("AOI must be an sf or sfc object.", call. = FALSE)
-  }
-
-  if (!any(sf::st_geometry_type(geom) %in%
-           c("POLYGON", "MULTIPOLYGON"))) {
-    stop("AOI geometry must be POLYGON or MULTIPOLYGON.", call. = FALSE)
-  }
-
-  if (is.na(sf::st_crs(geom))) {
-    stop("AOI must have a valid CRS.", call. = FALSE)
-  }
-
-  geom
-}
-
-.tile_name <- function(lon, lat) {
-  sprintf("WSFevolution_v1_%d_%d.tif", lon, lat)
-}
-
-.download_wsf_raster <- function(url) {
-
-  tmp <- tempfile(fileext = ".tif")
-
-  resp <- httr::GET(
-    url,
-    httr::write_disk(tmp, overwrite = TRUE),
-    httr::progress()
-  )
-
-  if (httr::status_code(resp) != 200) {
-    stop("Failed to download WSF tile: ", url, call. = FALSE)
-  }
-
-  terra::rast(tmp)
-}
-
 # -------------------------------------------------------------------
 #' Download, merge, and clip WSF Evolution data to an AOI
 #'
@@ -117,7 +74,7 @@ download_wsf_data <- function(aoi) {
   rasters <- lapply(
     tile_coords,
     function(t) {
-      url <- paste0(BASE_URL, .tile_name(t[1], t[2]))
+      url <- paste0(BASE_URL, .wsf_tile_name(t[1], t[2]))
       .download_wsf_raster(url)
     }
   )
