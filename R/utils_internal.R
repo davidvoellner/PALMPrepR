@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------
-# Internal helper
+# Internal helper functions
 # -------------------------------------------------------------------
 
 # snap extent to resolution grid (GDAL -tap equivalent)

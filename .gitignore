@@ -64,4 +64,3 @@ venv/
 
 # Allow small test data
 !inst/extdata/*.gpkg
-!inst/extdata/*.tif
