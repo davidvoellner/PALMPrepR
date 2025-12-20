@@ -54,12 +54,16 @@ process_raster_files <- function(
   message("==========================================================\n")
 
   # ---------------------------------------------------------------
-  # Prepare AOI
+  # Prepare AOI (terra-native CRS handling)
   # ---------------------------------------------------------------
 
-  aoi_geom <- sf::st_geometry(aoi)
-  aoi_geom <- sf::st_transform(aoi_geom, target_epsg)
-  aoi_vect <- terra::vect(aoi_geom)
+  aoi_vect <- terra::vect(aoi)
+
+  aoi_vect <- terra::project(
+    aoi_vect,
+    paste0("EPSG:", target_epsg)
+  )
+
 
   # ---------------------------------------------------------------
   # Create reference grid (snapped to integer resolution)
