@@ -26,7 +26,6 @@
   )
 }
 
-
 # force MULTIPOLYGON geometries
 .force_multipolygon <- function(geom) {
 
