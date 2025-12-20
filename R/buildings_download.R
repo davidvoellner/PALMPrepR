@@ -1,121 +1,125 @@
-# -------------------------------------------------------------------
-# Internal helper: index tile coordinates for LOD2 grid
-# -------------------------------------------------------------------
-.lod2_tile_index <- function(x, y, tile_size = 2000) {
-  # Compute lower-left index of containing 2km tile
-  xi <- floor(x / tile_size) * tile_size
-  yi <- floor(y / tile_size) * tile_size
-  list(xi = xi, yi = yi)
-}
-
-# -------------------------------------------------------------------
-# Internal helper: construct LOD2 tile filename
-# -------------------------------------------------------------------
-.lod2_tile_name <- function(xi, yi) {
-  sprintf("%d_%d.gml", xi / 1000, yi / 1000)
-}
-
-# -------------------------------------------------------------------
-# Internal helper: download GML
-# -------------------------------------------------------------------
-.download_lod2_gml <- function(url) {
-  tmp <- tempfile(fileext = ".gml")
-  resp <- httr::GET(
-    url,
-    httr::write_disk(tmp, overwrite = TRUE),
-    httr::progress()
-  )
-  if (httr::status_code(resp) != 200) {
-    unlink(tmp)
-    warning("Failed to download ", url)
-    return(NULL)
-  }
-  tmp
-}
-
-# -------------------------------------------------------------------
-#' Download LOD2 CityGML tiles intersecting an AOI
+# -------------------------------
+#' Download Bavarian LOD2 buildings clipped to AOI
 #'
-#' Given an AOI (projected), find the intersecting 2km LOD2 tile names,
-#' download them, read them as `sf`, and clip to the AOI.
+#' Downloads LOD2 CityGML tiles (2 km × 2 km UTM grid),
+#' converts them immediately to GeoPackage,
+#' clips to the AOI, and returns merged building footprints.
 #'
-#' @param aoi An `sf` or `sfc` object with a projected CRS (e.g., EPSG:25832)
-#' @param base_url Base URL prefix for LOD2 tiles
-#'   (default: `"https://download1.bayernwolke.de/a/lod2/citygml/"`)
-#' @param tile_size Size of tiles in CRS units (default 2000 m)
+#' @param aoi An `sf` or `sfc` object (EPSG:25832).
+#' @param cache_dir Directory used to cache converted GPKG tiles.
+#' @param base_url Base URL for LOD2 tiles.
 #'
-#' @return A merged `sf` of clipped LOD2 features
+#' @return An `sf` object with building footprints clipped to AOI.
+#'
+#' @examples
+#' \dontrun{
+#' aoi <- sf::st_read("inst/extdata/small_aoi.gpkg")
+#'
+#' lod2 <- download_lod2_buildings(
+#'   aoi       = aoi,
+#'   cache_dir = "lod2_cache"
+#' )
+#'
+#' plot(sf::st_geometry(lod2))
+#' }
+#'
 #' @export
-download_lod2_tiles <- function(
+download_lod2_buildings <- function(
     aoi,
-    base_url = "https://download1.bayernwolke.de/a/lod2/citygml/",
-    tile_size = 2000
+    cache_dir,
+    base_url = "https://download1.bayernwolke.de/a/lod2/citygml/"
 ) {
 
-  # --- Validate AOI ---
-  if (!inherits(aoi, c("sf", "sfc"))) {
-    stop("AOI must be sf or sfc", call. = FALSE)
-  }
-  if (is.na(sf::st_crs(aoi))) {
-    stop("AOI must have a defined CRS", call. = FALSE)
-  }
+  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Get projected extent
-  # Ensure AOI is in a projected CRS (units in meters)
-  aoi_proj <- sf::st_transform(aoi, sf::st_crs(aoi))
-  bb <- sf::st_bbox(aoi_proj)
+  # -----------------------------------------------------------
+  # Prepare AOI
+  # -----------------------------------------------------------
 
-  # Compute range of tile indices
-  x_idx <- seq(
-    floor(bb["xmin"] / tile_size) * tile_size,
-    floor((bb["xmax"] - 1) / tile_size) * tile_size,
-    by = tile_size
-  )
-  y_idx <- seq(
-    floor(bb["ymin"] / tile_size) * tile_size,
-    floor((bb["ymax"] - 1) / tile_size) * tile_size,
-    by = tile_size
-  )
+  aoi <- .validate_aoi_projected(aoi)
+  aoi_geom <- sf::st_geometry(aoi)
+  bb <- sf::st_bbox(aoi)
 
-  if (length(x_idx) == 0 || length(y_idx) == 0) {
-    stop("AOI is empty or too small", call. = FALSE)
-  }
+  # -----------------------------------------------------------
+  # Compute tile indices (UTM km grid, step = 2 km)
+  # -----------------------------------------------------------
 
-  tiles <- expand.grid(xi = x_idx, yi = y_idx)
+  e_start <- floor(bb["xmin"] / 1000 / 2) * 2
+  e_end   <- floor(bb["xmax"] / 1000 / 2) * 2
+  n_start <- floor(bb["ymin"] / 1000 / 2) * 2
+  n_end   <- floor(bb["ymax"] / 1000 / 2) * 2
 
-  # Build URLs
-  tiles$tile_name <- with(tiles, .lod2_tile_name(xi, yi))
-  tiles$url <- paste0(base_url, tiles$tile_name)
+  e_idx <- seq(e_start, e_end, by = 2)
+  n_idx <- seq(n_start, n_end, by = 2)
 
-  # Download
-  gml_files <- list()
+  tiles <- expand.grid(E = e_idx, N = n_idx)
+  tiles$name <- paste0(tiles$E, "_", tiles$N)
+
+  message("Downloading ", nrow(tiles), " LOD2 building tiles")
+
+  results <- list()
+
+  # -----------------------------------------------------------
+  # Download → convert → clip
+  # -----------------------------------------------------------
+
   for (i in seq_len(nrow(tiles))) {
-    gml <- .download_lod2_gml(tiles$url[i])
-    if (!is.null(gml)) {
-      gml_files[[tiles$tile_name[i]]] <- gml
+
+    tile <- tiles$name[i]
+    message("Processing tile ", tile)
+
+    gml_url  <- paste0(base_url, tile, ".gml")
+    gpkg_out <- file.path(cache_dir, paste0(tile, ".gpkg"))
+
+    # Convert only once (cache)
+    if (!file.exists(gpkg_out)) {
+
+      tmp_gml <- tempfile(fileext = ".gml")
+
+      resp <- httr::GET(
+        gml_url,
+        httr::write_disk(tmp_gml, overwrite = TRUE),
+        httr::progress()
+      )
+
+      if (httr::status_code(resp) != 200) {
+        unlink(tmp_gml)
+        next
+      }
+
+      ok <- .convert_gml_to_gpkg(tmp_gml, gpkg_out)
+      unlink(tmp_gml)
+
+      if (!ok) {
+        next
+      }
+    }
+
+    # Read converted GPKG
+    gpkg <- tryCatch(
+      sf::st_read(gpkg_out, quiet = TRUE),
+      error = function(e) NULL
+    )
+
+    if (is.null(gpkg) || nrow(gpkg) == 0) {
+      next
+    }
+
+    gpkg <- sf::st_make_valid(gpkg)
+
+    clipped <- tryCatch(
+      sf::st_intersection(gpkg, aoi_geom),
+      error = function(e) NULL
+    )
+
+    if (!is.null(clipped) && nrow(clipped) > 0) {
+      results[[length(results) + 1]] <- clipped
     }
   }
-  if (length(gml_files) == 0) {
-    stop("No LOD2 tiles downloaded", call. = FALSE)
+
+  if (!length(results)) {
+    stop("No LOD2 buildings intersect the AOI.", call. = FALSE)
   }
 
-  # Read + clip
-  result_list <- list()
-  for (nm in names(gml_files)) {
-    gml_path <- gml_files[[nm]]
-    try({
-      g <- sf::st_read(gml_path, quiet = TRUE)
-      g <- sf::st_transform(g, sf::st_crs(aoi_proj))
-      clipped <- sf::st_intersection(g, aoi_proj)
-      if (nrow(clipped) > 0) {
-        result_list[[nm]] <- clipped
-      }
-    }, silent = TRUE)
-    unlink(gml_path)
-  }
-  if (length(result_list) == 0) {
-    stop("No LOD2 features intersected the AOI", call. = FALSE)
-  }
-
-  do.call(rbind, result_list)
+  do.call(rbind, results)
 }

@@ -5,6 +5,13 @@
 # wsf <- download_wsf_data(aoi)
 # lc <- rast("inst/extdata/LC.tif")
 # dem <- rast("inst/extdata/DEM.tif")
+# lod2 <- download_lod2_buildings(
+#   aoi       = aoi,
+#   cache_dir = "lod2_cache"
+# )
+#
+# plot(st_geometry(lod2))
+#
 #
 # rasters <- list(
 #   DEM = dem,
@@ -19,5 +26,5 @@
 #   rasters     = rasters
 # )
 #
-
-
+#
+#
