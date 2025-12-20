@@ -16,7 +16,7 @@
 #' @return A named list of processed `terra::SpatRaster` objects.
 #'
 #' @export
-process_raster_files <- function(
+process_rasters <- function(
     aoi,
     target_epsg,
     resolution,
