@@ -50,6 +50,123 @@ process_lod2 <- function(
   }
 
   # ---------------------------------------------------------------
+  # Normalize geometries: drop Z/M and try to coerce unsupported
+  # geometry types (e.g. POLYHEDRALSURFACE / TIN) to MULTIPOLYGON.
+  # If this fails, provide a clear error explaining WKB type 15.
+  # ---------------------------------------------------------------
+
+  # drop Z/M dimensions where possible
+  try({
+    buildings <- sf::st_zm(buildings, drop = TRUE, what = "ZM")
+  }, silent = TRUE)
+
+  # detect geometry types present
+  geom_types <- unique(as.character(sf::st_geometry_type(buildings)))
+
+  # If polyhedral or tin geometries are present, try to cast to POLYGON/MULTIPOLYGON
+  if (any(geom_types %in% c("POLYHEDRALSURFACE", "TIN"))) {
+    cast_ok <- FALSE
+    try({
+      buildings <- sf::st_cast(buildings, "MULTIPOLYGON")
+      cast_ok <- TRUE
+    }, silent = TRUE)
+
+    if (!cast_ok) {
+      # Attempt a per-feature extraction of polygon faces from polyhedral geometries.
+      failed_idx <- integer(0)
+      new_geoms <- vector("list", nrow(buildings))
+      for (i in seq_len(nrow(buildings))) {
+        g <- sf::st_geometry(buildings)[[i]]
+        gtype <- as.character(sf::st_geometry_type(g))
+
+        if (gtype %in% c("POLYHEDRALSURFACE", "TIN")) {
+          polys <- NULL
+          # try casting to POLYGON first
+          try({
+            polys <- sf::st_cast(g, "POLYGON")
+          }, silent = TRUE)
+
+          # fallback to collection extract
+          if (is.null(polys) || length(polys) == 0) {
+            try({
+              polys <- sf::st_collection_extract(g, "POLYGON")
+            }, silent = TRUE)
+          }
+
+          if (is.null(polys) || length(polys) == 0) {
+            failed_idx <- c(failed_idx, i)
+            next
+          }
+
+          # merge faces and cast to MULTIPOLYGON
+          merged <- NULL
+          try({
+            merged <- sf::st_union(polys)
+          }, silent = TRUE)
+
+          if (is.null(merged)) {
+            # as last resort, combine without union
+            merged <- sf::st_combine(polys)
+          }
+
+          new_geoms[[i]] <- sf::st_cast(merged, "MULTIPOLYGON")
+        } else {
+          # ensure non-polyhedral geometries are multipolygons
+          g_conv <- NULL
+          try({
+            g_conv <- sf::st_cast(g, "MULTIPOLYGON")
+          }, silent = TRUE)
+          if (!is.null(g_conv)) {
+            new_geoms[[i]] <- g_conv
+          } else {
+            new_geoms[[i]] <- g
+          }
+        }
+      }
+
+      if (length(failed_idx) > 0) {
+        # Try GDAL/ogr2ogr conversion as a robust fallback: write temporary GPKG,
+        # run vectortranslate to force MULTIPOLYGON, and read back.
+        gdal_ok <- FALSE
+        tmp_in <- tempfile(fileext = ".gpkg")
+        tmp_out <- tempfile(fileext = ".gpkg")
+        try({
+          sf::st_write(buildings, tmp_in, delete_dsn = TRUE, quiet = TRUE)
+          sf::gdal_utils(
+            "vectortranslate",
+            src_dataset = tmp_in,
+            dst_dataset = tmp_out,
+            options = c("-nlt", "MULTIPOLYGON", "-overwrite")
+          )
+          buildings_conv <- sf::st_read(tmp_out, quiet = TRUE)
+          geom_after <- unique(as.character(sf::st_geometry_type(buildings_conv)))
+          if (!all(geom_after %in% c("POLYGON", "MULTIPOLYGON", "MULTISURFACE"))) {
+            stop("GDAL conversion did not produce polygon geometries", call. = FALSE)
+          }
+          buildings <- buildings_conv
+          gdal_ok <- TRUE
+        }, silent = TRUE)
+
+        if (!gdal_ok) {
+          stop(
+            "Input `buildings` contains polyhedral geometries that could not be converted (feature indexes: ",
+            paste(head(failed_idx, 10), collapse = ", "),
+            if (length(failed_idx) > 10) " ...",
+            ").\nAutomatic in-R extraction failed; GDAL/ogr2ogr conversion also failed or is not available.\n",
+            "Please convert the layer externally (e.g. `ogr2ogr -f GPKG lod2_multipolygon.gpkg lod2.gpkg -nlt MULTIPOLYGON`) or supply pre-cast (multi)polygons.",
+            call. = FALSE
+          )
+        }
+
+      } else {
+        # build new sfc and assign back to the sf object
+        sfc_new <- sf::st_sfc(new_geoms, crs = sf::st_crs(buildings))
+        sf::st_geometry(buildings) <- sfc_new
+      }
+    }
+  }
+
+  # ---------------------------------------------------------------
   # CRS harmonization
   # ---------------------------------------------------------------
 
