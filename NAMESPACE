@@ -3,5 +3,5 @@
 export(assign_palm_building_type)
 export(download_lod2_buildings)
 export(download_wsf_data)
-export(process_building_vectors)
+export(process_lod2)
 export(process_rasters)

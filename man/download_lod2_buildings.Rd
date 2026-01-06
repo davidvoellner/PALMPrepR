@@ -2,12 +2,13 @@
 % Please edit documentation in R/buildings_download.R
 \name{download_lod2_buildings}
 \alias{download_lod2_buildings}
-\title{Download Bavarian LOD2 buildings clipped to AOI}
+\title{Download, merge, and clip LOD2 building tiles to AOI}
 \usage{
 download_lod2_buildings(
   aoi,
   cache_dir,
-  base_url = "https://download1.bayernwolke.de/a/lod2/citygml/"
+  base_url = "https://download1.bayernwolke.de/a/lod2/citygml/",
+  target_epsg = 25832
 )
 }
 \arguments{
@@ -15,26 +16,15 @@ download_lod2_buildings(
 
 \item{cache_dir}{Directory used to cache converted GPKG tiles.}
 
-\item{base_url}{Base URL for LOD2 tiles.}
+\item{base_url}{Base URL for LOD2 CityGML tiles.}
+
+\item{target_epsg}{Target CRS (default: 25832).}
 }
 \value{
-An \code{sf} object with building footprints clipped to AOI.
+An \code{sf} object containing merged and clipped buildings.
 }
 \description{
-Downloads LOD2 CityGML tiles (2 km × 2 km UTM grid),
-converts them immediately to GeoPackage,
-clips to the AOI, and returns merged building footprints.
-}
-\examples{
-\dontrun{
-aoi <- sf::st_read("inst/extdata/small_aoi.gpkg")
-
-lod2 <- download_lod2_buildings(
-  aoi       = aoi,
-  cache_dir = "lod2_cache"
-)
-
-plot(sf::st_geometry(lod2))
-}
-
+Downloads all intersecting Bavarian LOD2 CityGML tiles,
+converts them to GeoPackage, merges them into a single
+sf object, and clips the result to the AOI.
 }

@@ -1,125 +1,154 @@
-# -------------------------------
-#' Download Bavarian LOD2 buildings clipped to AOI
+# -------------------------------------------------------------------
+#' Download, merge, and clip LOD2 building tiles to AOI
 #'
-#' Downloads LOD2 CityGML tiles (2 km × 2 km UTM grid),
-#' converts them immediately to GeoPackage,
-#' clips to the AOI, and returns merged building footprints.
+#' Downloads all intersecting Bavarian LOD2 CityGML tiles,
+#' converts them to GeoPackage, merges them into a single
+#' sf object, and clips the result to the AOI.
 #'
 #' @param aoi An `sf` or `sfc` object (EPSG:25832).
 #' @param cache_dir Directory used to cache converted GPKG tiles.
-#' @param base_url Base URL for LOD2 tiles.
+#' @param base_url Base URL for LOD2 CityGML tiles.
+#' @param target_epsg Target CRS (default: 25832).
 #'
-#' @return An `sf` object with building footprints clipped to AOI.
-#'
-#' @examples
-#' \dontrun{
-#' aoi <- sf::st_read("inst/extdata/small_aoi.gpkg")
-#'
-#' lod2 <- download_lod2_buildings(
-#'   aoi       = aoi,
-#'   cache_dir = "lod2_cache"
-#' )
-#'
-#' plot(sf::st_geometry(lod2))
-#' }
+#' @return An `sf` object containing merged and clipped buildings.
 #'
 #' @export
 download_lod2_buildings <- function(
     aoi,
     cache_dir,
-    base_url = "https://download1.bayernwolke.de/a/lod2/citygml/"
+    base_url = "https://download1.bayernwolke.de/a/lod2/citygml/",
+    target_epsg = 25832
 ) {
 
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
 
   # -----------------------------------------------------------
-  # Prepare AOI
+  # Validate & prepare AOI
   # -----------------------------------------------------------
-
-  aoi <- .validate_aoi_projected(aoi)
+  aoi <- .validate_aoi_projected(aoi, target_epsg)
   aoi_geom <- sf::st_geometry(aoi)
   bb <- sf::st_bbox(aoi)
 
   # -----------------------------------------------------------
-  # Compute tile indices (UTM km grid, step = 2 km)
+  # Determine intersecting 2 km tile indices (UTM grid)
   # -----------------------------------------------------------
+  e_idx <- seq(
+    floor(bb["xmin"] / 2000) * 2,
+    floor(bb["xmax"] / 2000) * 2,
+    by = 2
+  )
 
-  e_start <- floor(bb["xmin"] / 1000 / 2) * 2
-  e_end   <- floor(bb["xmax"] / 1000 / 2) * 2
-  n_start <- floor(bb["ymin"] / 1000 / 2) * 2
-  n_end   <- floor(bb["ymax"] / 1000 / 2) * 2
-
-  e_idx <- seq(e_start, e_end, by = 2)
-  n_idx <- seq(n_start, n_end, by = 2)
+  n_idx <- seq(
+    floor(bb["ymin"] / 2000) * 2,
+    floor(bb["ymax"] / 2000) * 2,
+    by = 2
+  )
 
   tiles <- expand.grid(E = e_idx, N = n_idx)
   tiles$name <- paste0(tiles$E, "_", tiles$N)
 
-  message("Downloading ", nrow(tiles), " LOD2 building tiles")
+  message("Downloading ", nrow(tiles), " LOD2 tiles")
 
-  results <- list()
+  buildings_list <- list()
 
   # -----------------------------------------------------------
-  # Download → convert → clip
+  # Download + read CityGML tiles
   # -----------------------------------------------------------
+  for (tile in tiles$name) {
 
-  for (i in seq_len(nrow(tiles))) {
+    gml_file <- file.path(cache_dir, paste0(tile, ".gml"))
 
-    tile <- tiles$name[i]
-    message("Processing tile ", tile)
+    # Download if not cached
+    if (!file.exists(gml_file)) {
 
-    gml_url  <- paste0(base_url, tile, ".gml")
-    gpkg_out <- file.path(cache_dir, paste0(tile, ".gpkg"))
-
-    # Convert only once (cache)
-    if (!file.exists(gpkg_out)) {
-
-      tmp_gml <- tempfile(fileext = ".gml")
+      gml_url <- paste0(base_url, tile, ".gml")
 
       resp <- httr::GET(
         gml_url,
-        httr::write_disk(tmp_gml, overwrite = TRUE),
+        httr::write_disk(gml_file, overwrite = TRUE),
         httr::progress()
       )
 
       if (httr::status_code(resp) != 200) {
-        unlink(tmp_gml)
-        next
-      }
-
-      ok <- .convert_gml_to_gpkg(tmp_gml, gpkg_out)
-      unlink(tmp_gml)
-
-      if (!ok) {
+        unlink(gml_file)
         next
       }
     }
 
-    # Read converted GPKG
-    gpkg <- tryCatch(
-      sf::st_read(gpkg_out, quiet = TRUE),
-      error = function(e) NULL
-    )
+    # Read CityGML (all layers)
+    layers <- tryCatch(sf::st_layers(gml_file)$name, error = function(e) NULL)
+    if (is.null(layers) || !length(layers)) next
 
-    if (is.null(gpkg) || nrow(gpkg) == 0) {
-      next
-    }
+    objs <- lapply(layers, function(lyr) {
+      tryCatch(
+        sf::st_read(gml_file, layer = lyr, quiet = TRUE),
+        error = function(e) NULL
+      )
+    })
 
-    gpkg <- sf::st_make_valid(gpkg)
+    objs <- objs[!vapply(objs, is.null, logical(1))]
+    if (!length(objs)) next
 
-    clipped <- tryCatch(
-      sf::st_intersection(gpkg, aoi_geom),
-      error = function(e) NULL
-    )
+    tile_sf <- do.call(rbind, objs)
+    if (!inherits(tile_sf, "sf") || !nrow(tile_sf)) next
 
-    if (!is.null(clipped) && nrow(clipped) > 0) {
-      results[[length(results) + 1]] <- clipped
-    }
+    tile_sf <- sf::st_transform(tile_sf, target_epsg)
+    buildings_list[[length(buildings_list) + 1]] <- tile_sf
   }
 
-  if (!length(results)) {
+  if (!length(buildings_list)) {
+    stop("No LOD2 tiles could be downloaded or read.", call. = FALSE)
+  }
+
+  # -----------------------------------------------------------
+  # Merge all tiles FIRST
+  # -----------------------------------------------------------
+  buildings <- do.call(rbind, buildings_list)
+
+  # -----------------------------------------------------------
+  # Convert CityGML solids → 2D building footprints
+  # (robust handling of mixed geometry types)
+  # -----------------------------------------------------------
+
+  # Drop Z/M first
+  buildings <- sf::st_zm(buildings, drop = TRUE, what = "ZM")
+
+  # Detect geometry types
+  gtypes <- sf::st_geometry_type(buildings)
+
+  # Indices of collection-like geometries
+  is_collection <- gtypes %in% c(
+    "GEOMETRYCOLLECTION",
+    "MULTISURFACE",
+    "POLYHEDRALSURFACE",
+    "MULTIPOLYHEDRALSURFACE"
+  )
+
+  # For collections: extract polygonal components
+  if (any(is_collection)) {
+    buildings[is_collection, ] <- sf::st_collection_extract(
+      buildings[is_collection, ],
+      type = "POLYGON",
+      warn = FALSE
+    )
+  }
+
+  # Now GEOS is safe to use
+  buildings <- sf::st_make_valid(buildings)
+
+  # Ensure uniform MULTIPOLYGON output
+  buildings <- sf::st_cast(buildings, "MULTIPOLYGON", warn = FALSE)
+
+
+
+  # -----------------------------------------------------------
+  # Clip ONCE to AOI
+  # -----------------------------------------------------------
+  buildings_clipped <- sf::st_intersection(buildings, aoi_geom)
+
+  if (!nrow(buildings_clipped)) {
     stop("No LOD2 buildings intersect the AOI.", call. = FALSE)
   }
 
-  do.call(rbind, results)
+  buildings_clipped
 }

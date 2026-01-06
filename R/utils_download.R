@@ -2,6 +2,8 @@
 # Internal helper functions
 # -------------------------------------------------------------------
 
+# WSF Evolution
+# --------------------------------
 # AOI validation
 .validate_aoi <- function(aoi) {
 
@@ -64,58 +66,4 @@
   }
 
   terra::rast(tmp)
-}
-
-# create tile index
-.building_tile_index <- function(x, y) {
-  list(
-    xi = floor(x / 1000),
-    yi = floor(y / 1000)
-  )
-}
-
-# create tile name
-.building_tile_name <- function(xi, yi) {
-  sprintf("%d_%d.gml", xi, yi)
-}
-
-# download GML
-.download_building_gml <- function(url) {
-  tmp <- tempfile(fileext = ".gml")
-  resp <- httr::GET(
-    url,
-    httr::write_disk(tmp, overwrite = TRUE),
-    httr::progress()
-  )
-  if (httr::status_code(resp) != 200) {
-    unlink(tmp)
-    warning("Failed to download ", url)
-    return(NULL)
-  }
-  tmp
-}
-
-.convert_gml_to_gpkg <- function(gml_file, gpkg_file, epsg = 25832) {
-
-  v <- tryCatch(
-    terra::vect(gml_file),
-    error = function(e) NULL
-  )
-
-  if (is.null(v) || nrow(v) == 0) {
-    return(FALSE)
-  }
-
-  # Reproject (terra-native)
-  v <- terra::project(v, paste0("EPSG:", epsg))
-
-  # Write directly — DO NOT touch geometry further
-  terra::writeVector(
-    v,
-    gpkg_file,
-    overwrite = TRUE,
-    filetype = "GPKG"
-  )
-
-  TRUE
 }
