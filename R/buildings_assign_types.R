@@ -86,7 +86,7 @@ assign_palm_building_type <- function(buildings, wsf) {
 
   buildings$palm_type <- mapply(
     .classify_palm_type,
-    buildings[["function"]],
+    buildings[["function."]],
     buildings$year_max
   )
 

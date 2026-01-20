@@ -184,6 +184,12 @@ process_lod2 <- function(
   }
 
   # ---------------------------------------------------------------
+  # Cast back to MULTIPOLYGON to preserve original geometry type
+  # ---------------------------------------------------------------
+
+  buildings_clipped <- sf::st_cast(buildings_clipped, "MULTIPOLYGON")
+
+  # ---------------------------------------------------------------
   # Add sequential ID
   # ---------------------------------------------------------------
 
