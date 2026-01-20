@@ -23,7 +23,10 @@ out <- process_rasters(
 # -------------------------------
 lod2_multipolygon <- st_read("inst/extdata/lod2_multipolygon.gpkg")
 res <- process_lod2(buildings = lod2_multipolygon, aoi = aoi)
+
 summary(lod2_multipolygon)
+summary(res$buildings)
+
 run_ogr2ogr <- function(src, dst, nlt = "MULTIPOLYGON", ogr2ogr_path = NULL, extra = character()) {
   if (is.null(ogr2ogr_path) || ogr2ogr_path == "") {
     ogr2ogr_path <- Sys.which("ogr2ogr")

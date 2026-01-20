@@ -8,11 +8,11 @@
   x
 }
 
-# split buildings and bridges in separate layers based
-.split_buildings_bridges <- function(x, function_col = "function") {
+# split buildings and bridges in separate layers based on column "function."
+.split_buildings_bridges <- function(x, function_col = "function.") {
 
   if (!function_col %in% names(x)) {
-    stop("Column 'function' not found in building data.", call. = FALSE)
+    stop("Column 'function.' not found in building data.", call. = FALSE)
   }
 
   bridges <- x[x[[function_col]] == "53001_1800", ]
