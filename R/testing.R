@@ -57,3 +57,13 @@ building_rasters <- rasterize_buildings_palm(
 plot(building_rasters$type)
 plot(building_rasters$id)
 plot(building_rasters$height)
+
+# Rasterize bridge properties for PALM
+bridge_rasters <- rasterize_bridges_palm(
+  bridges   = res$bridges,
+  template  = out$DEM
+)
+
+# Check results
+plot(bridge_rasters$id)
+plot(bridge_rasters$height)
