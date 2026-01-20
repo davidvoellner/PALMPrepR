@@ -15,5 +15,8 @@
 # Private notes
 *.html
 
+# Testing script
+R/testing.R
+
 # Allow small test data
 !inst/extdata/*.gpkg
