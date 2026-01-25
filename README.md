@@ -199,15 +199,8 @@ This package is licensed under the GNU General Public License v3.0 or later. See
 
 ## Author
 
-David Völlner
+David Voellner
 
-## Citation
-
-If you use PALMPrepR in your research, please cite it as:
-
-```
-Völlner, D. (2026). PALMPrepR: Preprocessing Geospatial Data for PALM-4U Static Drivers. R package version 0.0.0.9000.
-```
 
 ## Contributing
 
