@@ -21,7 +21,7 @@
 #'   building_type = building_rasters$type,
 #'   building_height = building_rasters$height
 #' )
-#' 
+#'
 #' export_to_palm(
 #'   rasters = building_list,
 #'   output_dir = "output",

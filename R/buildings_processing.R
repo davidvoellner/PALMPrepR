@@ -28,9 +28,9 @@
 #'
 #' @export
 process_lod2 <- function(
-    buildings,
-    aoi,
-    target_epsg = 25832
+  buildings,
+  aoi,
+  target_epsg = 25832
 ) {
 
   # ---------------------------------------------------------------

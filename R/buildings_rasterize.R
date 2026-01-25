@@ -73,7 +73,7 @@ rasterize_buildings <- function(buildings, template, property, fun = "max") {
 #' \dontrun{
 #' buildings <- assign_palm_building_type(buildings, wsf)
 #' rasters <- rasterize_buildings_palm(buildings, dem)
-#' 
+#'
 #' rasters$type
 #' rasters$id
 #' rasters$height
@@ -144,7 +144,7 @@ rasterize_buildings_palm <- function(buildings, template) {
 #' \dontrun{
 #' bridges <- res$bridges
 #' rasters <- rasterize_bridges_palm(bridges, dem)
-#' 
+#'
 #' rasters$id
 #' rasters$height
 #' }
@@ -191,4 +191,3 @@ rasterize_bridges_palm <- function(bridges, template) {
   )
 
 }
-

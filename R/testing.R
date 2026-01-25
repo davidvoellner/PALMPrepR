@@ -89,7 +89,7 @@
 #   DEM = out$DEM
 # )
 
-# export_to_palm(base_rasters, output_dir, paste0(prefix, "_base"), resolution)
+# export_to_palm(base_rasters, output_dir, prefix, resolution)
 
 # # LC surface type rasters
 # lc_rasters <- list(
@@ -116,3 +116,42 @@
 # )
 
 # export_to_palm(bridge_export, output_dir, prefix, resolution)
+
+
+# ---------------------------------------------------------------
+# Create CSD configuration file
+# ---------------------------------------------------------------
+# Files are auto-discovered from input_root_path based on naming patterns
+config <- create_csd_configuration(
+  prefix = "MUC",
+  output_dir = output_dir,
+  author = "David Voellner",
+  contact_person = "David Voellner (david.voellner@stud-mail.uni-wuerzburg.de)",
+  data_content = "Static driver for PALM4U Munich City domain, 10 m resolution",
+  location = "Munich, Germany",
+  institution = "Earth Observation Research Center (EORC), University of Wuerzburg",
+  origin_time = "2025-02-16 00:00:00 +00",
+  
+  # Settings
+  epsg = 25832,
+  season = "summer",
+  
+  # Output
+  output_path = "/MUC_static_driver",
+  file_out = "MUC_static_driver",
+  version = 1,
+  
+  # Input: auto-discovers files from this folder
+  input_root_path = output_dir,
+  
+  # Domain
+  pixel_size = 10.0,
+  origin_x = 686750,
+  origin_y = 5335300,
+  nx = 39,
+  ny = 39,
+  dz = 10.0,
+  bridge_depth = 3.0,
+  buildings_3d = TRUE,
+  generate_vegetation_patches = TRUE
+)

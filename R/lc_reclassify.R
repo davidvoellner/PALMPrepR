@@ -22,7 +22,7 @@
 #' \dontrun{
 #' lc <- rast("LC.tif")
 #' palm_surfaces <- reclassify_lc_to_palm(lc)
-#' 
+#'
 #' plot(palm_surfaces$vegetation)
 #' plot(palm_surfaces$water)
 #' plot(palm_surfaces$pavement)
