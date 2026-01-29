@@ -15,25 +15,19 @@ process_lod2(buildings, aoi, target_epsg = 25832)
 }
 \value{
 A named list with elements \code{buildings} and \code{bridges}
-(both \code{sf} objects).
+(both \code{sf} objects with geometry normalized to MULTIPOLYGON).
 }
 \description{
 Clips building polygons to an AOI, assigns sequential IDs,
 and splits the dataset into buildings and bridges according
-to the ALKIS function code.
+to the ALKIS function code. Handles polyhedral geometries
+(e.g., from CityGML LOD2) with automatic conversion fallbacks.
 }
-\examples{
-\dontrun{
-bld <- sf::st_read("lod2_buildings.gpkg")
-aoi <- sf::st_read("aoi.gpkg")
-
-res <- process_lod2(
-  buildings = bld,
-  aoi       = aoi
-)
-
-res$buildings
-res$bridges
+\details{
+If input contains unsupported geometry types (POLYHEDRALSURFACE, TIN):
+\enumerate{
+\item Attempts per-feature extraction to polygons
+\item Tries GDAL vectortranslate as fallback
+\item Provides clear error with conversion instructions if all fail
 }
-
 }
