@@ -74,7 +74,9 @@ input_root:
 
 #---------------------------------------------------------------------------#
 # Domain definition (root domain)
-# NOTE: the here defined domain needs to be completely within the boundaries of the data. Palm-4U cannot handle non-rectangular domains
+# NOTE:
+# The here defined domain needs to be completely within the boundaries of the data. 
+# Palm-4U cannot handle non-rectangular domains
 #---------------------------------------------------------------------------#
 domain_root:
   pixel_size: 10
