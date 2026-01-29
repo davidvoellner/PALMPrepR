@@ -1,30 +1,23 @@
-# -------------------------------------------------------------------
+# ===================================================================
 #' Process building vectors: clip, ID, split
 #'
 #' Clips building polygons to an AOI, assigns sequential IDs,
 #' and splits the dataset into buildings and bridges according
-#' to the ALKIS function code.
+#' to the ALKIS function code. Handles polyhedral geometries
+#' (e.g., from CityGML LOD2) with automatic conversion fallbacks.
 #'
 #' @param buildings An `sf` object containing building polygons.
 #' @param aoi An `sf` or `sfc` object defining the area of interest.
 #' @param target_epsg Target CRS EPSG code (default: 25832).
 #'
 #' @return A named list with elements `buildings` and `bridges`
-#'   (both `sf` objects).
+#'   (both `sf` objects with geometry normalized to MULTIPOLYGON).
 #'
-#' @examples
-#' \dontrun{
-#' bld <- sf::st_read("lod2_buildings.gpkg")
-#' aoi <- sf::st_read("aoi.gpkg")
-#'
-#' res <- process_lod2(
-#'   buildings = bld,
-#'   aoi       = aoi
-#' )
-#'
-#' res$buildings
-#' res$bridges
-#' }
+#' @details
+#' If input contains unsupported geometry types (POLYHEDRALSURFACE, TIN):
+#' 1. Attempts per-feature extraction to polygons
+#' 2. Tries GDAL vectortranslate as fallback
+#' 3. Provides clear error with conversion instructions if all fail
 #'
 #' @export
 process_lod2 <- function(

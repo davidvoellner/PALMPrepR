@@ -1,127 +1,127 @@
-# library(sf)
-# library(terra)
+# ===================================================================
+# PALM-4U Static Driver Preparation Workflow
+# ===================================================================
+# Complete workflow to prepare static driver inputs for PALM urban
+# climate simulation: raster processing, building classification,
+# rasterization, and YAML configuration export.
+# ===================================================================
 
-# aoi <- st_read("inst/extdata/aoi_10.gpkg")
+library(sf)
+library(terra)
 
-# # -------------------------------
-# # Process rasters
-# # -------------------------------
+# Load area of interest
+aoi <- st_read("inst/extdata/aoi_10.gpkg")
 
-# wsf <- download_wsf_data(aoi)
-# lc <- rast("inst/extdata/LC.tif")
-# dem <- rast("inst/extdata/DEM.tif")
+# ===================================================================
+# 1. RASTER DATA PROCESSING
+# ===================================================================
+# Reproject, resample, and clip rasters to common grid
 
-# raster_list <- list(
-#   DEM = dem,
-#   LC  = lc,
-#   WSF = wsf
-# )
+# Download and load raster data
+wsf <- download_wsf_data(aoi)
+lc  <- rast("inst/extdata/LC.tif")
+dem <- rast("inst/extdata/DEM.tif")
 
-# out <- process_rasters(
-#   aoi         = aoi,
-#   target_epsg = 25832,
-#   resolution  = 10,
-#   rasters     = raster_list
-# )
+raster_list <- list(
+  DEM = dem,
+  LC  = lc,
+  WSF = wsf
+)
 
-# # Reclassify LC to PALM surface types
-# lc_surfaces <- reclassify_lc_to_palm(out$LC)
+# Process rasters to common grid (10 m, EPSG:25832)
+out <- process_rasters(
+  aoi         = aoi,
+  target_epsg = 25832,
+  resolution  = 10,
+  rasters     = raster_list
+)
 
-# # Check results
-# plot(lc_surfaces$vegetation)
-# plot(lc_surfaces$water)
-# plot(lc_surfaces$pavement)
+# Reclassify Land Cover to PALM surface types
+lc_surfaces <- reclassify_lc_to_palm(out$LC)
 
-# # -------------------------------
-# # Process LOD2 building data
-# # -------------------------------
+# ===================================================================
+# 2. BUILDING DATA PROCESSING
+# ===================================================================
+# Load LOD2 building footprints, split into buildings/bridges,
+# classify buildings by type and construction year, rasterize.
 
-# lod2_multipolygon <- st_read("inst/extdata/lod2_multipolygon.gpkg")
+lod2_multipolygon <- st_read("inst/extdata/lod2_multipolygon.gpkg")
 
-# res <- process_lod2(buildings = lod2_multipolygon, aoi = aoi)
+# Process LOD2: clip to AOI, assign ID, split buildings/bridges
+res <- process_lod2(buildings = lod2_multipolygon, aoi = aoi)
 
-# st_write(res$buildings,
-#          "inst/extdata/processed_buildings.gpkg",
-#          append=FALSE)
-# st_write(res$bridges,
-#          "inst/extdata/processed_bridges.gpkg",
-#          append=FALSE)
+# Export intermediate building layers
+st_write(res$buildings, "inst/extdata/processed_buildings.gpkg", append = FALSE)
+st_write(res$bridges, "inst/extdata/processed_bridges.gpkg", append = FALSE)
 
-# building_types <- assign_palm_building_type(
-#   buildings = res$buildings,
-#   wsf       = out$WSF
-# )
-# st_write(building_types,
-#          "inst/extdata/building_types.gpkg",
-#          append=FALSE)
+# Classify buildings by ALKIS codes and WSF construction year
+building_types <- assign_palm_building_type(
+  buildings = res$buildings,
+  wsf       = out$WSF
+)
+st_write(building_types, "inst/extdata/building_types.gpkg", append = FALSE)
 
-# # Rasterize building properties for PALM
-# building_rasters <- rasterize_buildings_palm(
-#   buildings = building_types,
-#   template  = out$DEM
-# )
+# Rasterize building properties (type, ID, height)
+building_rasters <- rasterize_buildings_palm(
+  buildings = building_types,
+  template  = out$DEM
+)
 
-# # Check results
-# plot(building_rasters$type)
-# plot(building_rasters$id)
-# plot(building_rasters$height)
+# Rasterize bridge properties (ID, height)
+bridge_rasters <- rasterize_bridges_palm(
+  bridges  = res$bridges,
+  template = out$DEM
+)
 
-# # Rasterize bridge properties for PALM
-# bridge_rasters <- rasterize_bridges_palm(
-#   bridges   = res$bridges,
-#   template  = out$DEM
-# )
+# ===================================================================
+# 3. RASTER EXPORT
+# ===================================================================
+# Export processed rasters to GeoTIFF with PALM naming convention
 
-# # Check results
-# plot(bridge_rasters$id)
-# plot(bridge_rasters$height)
+output_dir <- "inst/extdata/processed_rasters"
+prefix <- "MUC"
+resolution <- 10
 
-# # ---------------------------------------------------------------
-# # Export all processed rasters as GeoTIFF with PALM naming
-# # ---------------------------------------------------------------
+# Export DEM (base raster)
+export_to_palm(
+  list(DEM = out$DEM),
+  output_dir, prefix, resolution
+)
 
-# output_dir <- "inst/extdata/processed_rasters"
-# prefix <- "MUC"
-# resolution <- 10
+# Export Land Cover surface types
+export_to_palm(
+  list(
+    vegetation_type = lc_surfaces$vegetation,
+    water_type = lc_surfaces$water,
+    pavement_type = lc_surfaces$pavement
+  ),
+  output_dir, paste0(prefix, "_lc"), resolution
+)
 
-# # Base rasters
-# base_rasters <- list(
-#   DEM = out$DEM
-# )
+# Export building rasters
+export_to_palm(
+  list(
+    building_type = building_rasters$type,
+    building_id = building_rasters$id,
+    building_height = building_rasters$height
+  ),
+  output_dir, prefix, resolution
+)
 
-# export_to_palm(base_rasters, output_dir, prefix, resolution)
+# Export bridge rasters
+export_to_palm(
+  list(
+    bridge_id = bridge_rasters$id,
+    bridge_height = bridge_rasters$height
+  ),
+  output_dir, prefix, resolution
+)
 
-# # LC surface type rasters
-# lc_rasters <- list(
-#   vegetation_type = lc_surfaces$vegetation,
-#   water_type = lc_surfaces$water,
-#   pavement_type = lc_surfaces$pavement
-# )
+# ===================================================================
+# 4. PALM CONFIGURATION FILE
+# ===================================================================
+# Generate YAML static driver configuration with auto-discovered files
 
-# export_to_palm(lc_rasters, output_dir, paste0(prefix, "_lc"), resolution)
-
-# # Building rasters
-# building_export <- list(
-#   building_type = building_rasters$type,
-#   building_id = building_rasters$id,
-#   building_height = building_rasters$height
-# )
-
-# export_to_palm(building_export, output_dir, prefix, resolution)
-
-# # Bridge rasters
-# bridge_export <- list(
-#   bridge_id = bridge_rasters$id,
-#   bridge_height = bridge_rasters$height
-# )
-
-# export_to_palm(bridge_export, output_dir, prefix, resolution)
-
-
-# ---------------------------------------------------------------
-# Create CSD configuration file
-# ---------------------------------------------------------------
-# Files are auto-discovered from input_root_path based on naming patterns
 config <- create_csd_configuration(
   prefix = "MUC",
   output_dir = output_dir,
@@ -131,20 +131,12 @@ config <- create_csd_configuration(
   location = "Munich, Germany",
   institution = "Earth Observation Research Center (EORC), University of Wuerzburg",
   origin_time = "2025-02-16 00:00:00 +00",
-  
-  # Settings
   epsg = 25832,
   season = "summer",
-  
-  # Output
   output_path = "/MUC_static_driver",
   file_out = "MUC_static_driver",
   version = 1,
-  
-  # Input: auto-discovers files from this folder
   input_root_path = output_dir,
-  
-  # Domain
   pixel_size = 10.0,
   origin_x = 686750,
   origin_y = 5335300,

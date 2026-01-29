@@ -1,8 +1,21 @@
+# ===================================================================
+# Raster Processing Utilities
+# ===================================================================
+# Helper functions for raster grid alignment and manipulation
+# used across PALMPrepR processing workflows.
+# ===================================================================
+
 # -------------------------------------------------------------------
-# Internal helper functions
+# Grid Snapping
 # -------------------------------------------------------------------
 
-# snap extent to resolution grid (GDAL -tap equivalent)
+#' Snap extent to pixel-aligned grid
+#'
+#' Aligns a raster extent to a regular grid with specified resolution.
+#' Equivalent to GDAL's `-tap` (target aligned pixels) option.
+#' Ensures consistent grid alignment across multiple rasters.
+#'
+#' @keywords internal
 .snap_extent <- function(ext, resolution) {
 
   if (!inherits(ext, "SpatExtent")) {

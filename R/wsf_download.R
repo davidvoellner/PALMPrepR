@@ -70,14 +70,23 @@ download_wsf_data <- function(aoi) {
     stop("No WSF tiles intersect AOI.", call. = FALSE)
   }
 
-  # --- download tiles ---
-  rasters <- lapply(
-    tile_coords,
-    function(t) {
+  # --- download tiles with progress bar ---
+  n_tiles <- length(tile_coords)
+  pb <- utils::txtProgressBar(min = 0, max = n_tiles, style = 3)
+  
+  rasters <- mapply(
+    function(t, i) {
       url <- paste0(BASE_URL, .wsf_tile_name(t[1], t[2]))
-      .download_wsf_raster(url)
-    }
+      rast <- .download_wsf_raster(url)
+      utils::setTxtProgressBar(pb, i)
+      rast
+    },
+    tile_coords,
+    seq_along(tile_coords),
+    SIMPLIFY = FALSE
   )
+  
+  close(pb)
 
   # --- ensure rasters exist ---
   if (length(rasters) == 0) {
