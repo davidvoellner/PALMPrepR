@@ -12,6 +12,9 @@
 # Vector data
 *.gpkg
 
+# Static driver config file
+*.yml
+
 # Private notes
 *.html
 
