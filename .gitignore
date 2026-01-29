@@ -22,4 +22,4 @@
 R/testing.R
 
 # Allow small test data
-!inst/extdata/*.gpkg
+!inst/extdata/aoi_10.gpkg
