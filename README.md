@@ -25,39 +25,56 @@ PALM-4U is an advanced urban climate simulation model used for modeling atmosphe
 - Export of GeoTIFFs following PALM static driver conventions  
 - Automatic generation of a YAML static driver configuration file  
 
----
-## Workflow Overview
-
+## Workflow
+```mermaid
 flowchart TD
     A[Start: Input Data] --> B[Load AOI Polygon]
-    B --> C[Load Raster Data<br/>(DEM, Land Cover, WSF)]
-    C --> D[Process Rasters<br/>Reproject · Resample · Clip<br/>process_rasters()]
-    D --> E[Reclassify Land Cover<br/>to PALM Surface Types<br/>reclassify_lc_to_palm()]
+    B --> C["Load Raster Data
+(DEM, Land Cover, WSF)"]
+    C --> D["Process Rasters
+Reproject · Resample · Clip
+process_rasters()"]
+    D --> E["Reclassify Land Cover
+to PALM Surface Types
+reclassify_lc_to_palm()"]
 
     B --> F[Load LOD2 Building Data]
-    F --> G[Process LOD2 Data<br/>Clip to AOI · Assign IDs · Split<br/>process_lod2()]
-    G --> H[Classify Buildings<br/>ALKIS + WSF Year<br/>assign_palm_building_type()]
+    F --> G["Process LOD2 Data
+Clip to AOI · Assign IDs · Split
+process_lod2()"]
+    G --> H["Classify Buildings
+ALKIS + WSF Year
+assign_palm_building_type()"]
 
-    E --> I[Rasterize Buildings<br/>Type · ID · Height<br/>rasterize_buildings_palm()]
+    E --> I["Rasterize Buildings
+Type · ID · Height
+rasterize_buildings_palm()"]
     H --> I
 
-    G --> J[Rasterize Bridges<br/>ID · Height<br/>rasterize_bridges_palm()]
+    G --> J["Rasterize Bridges
+ID · Height
+rasterize_bridges_palm()"]
 
     D --> I
     D --> J
 
-    I --> K[Export Building Rasters<br/>export_to_palm()]
-    J --> L[Export Bridge Rasters<br/>export_to_palm()]
-    E --> M[Export Land-Cover Rasters<br/>export_to_palm()]
-    D --> N[Export DEM<br/>export_to_palm()]
+    I --> K["Export Building Rasters
+export_to_palm()"]
+    J --> L["Export Bridge Rasters
+export_to_palm()"]
+    E --> M["Export Land-Cover Rasters
+export_to_palm()"]
+    D --> N["Export DEM
+export_to_palm()"]
 
-    K --> O[Generate PALM Static Driver YAML<br/>create_csd_configuration()]
+    K --> O["Generate PALM Static Driver YAML
+create_csd_configuration()"]
     L --> O
     M --> O
     N --> O
 
     O --> P[Ready-to-use PALM-4U Static Driver]
-
+```
 
 ## Installation
 
