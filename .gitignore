@@ -5,10 +5,6 @@
 .Rcheck/
 *.tar.gz
 
-# Raster data
-*.tif
-*.rds
-
 # Vector data
 *.gpkg
 
@@ -21,5 +17,5 @@
 # Testing script
 scripts/testing.R
 
-# Allow small test data
-!inst/extdata/aoi_10.gpkg
+# Allow example datasets
+!inst/extdata/
