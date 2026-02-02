@@ -19,7 +19,7 @@
 *.html
 
 # Testing script
-R/testing.R
+scripts/testing.R
 
 # Allow small test data
 !inst/extdata/aoi_10.gpkg

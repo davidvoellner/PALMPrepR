@@ -1,7 +1,7 @@
 # ===================================================================
 # PALM-4U Static Driver Preparation Workflow
 # ===================================================================
-# Complete workflow to prepare static driver inputs for PALM urban
+# Workflow to prepare static driver inputs for PALM urban
 # climate simulation: raster processing, building classification,
 # rasterization, and YAML configuration export.
 # ===================================================================
@@ -19,8 +19,8 @@ aoi <- st_read("inst/extdata/aoi_10.gpkg")
 
 # Download and load raster data
 wsf <- download_wsf_data(aoi)
-lc  <- rast("inst/extdata/LC.tif")
-dem <- rast("inst/extdata/DEM.tif")
+lc  <- rast("inst/extdata/LC_5.tif")
+dem <- rast("inst/extdata/DEM_5.tif")
 
 raster_list <- list(
   DEM = dem,
@@ -125,7 +125,7 @@ export_to_palm(
 config <- create_csd_configuration(
   prefix = "MUC",
   output_dir = output_dir,
-  author = "David Voellner",
+  author = "author",
   contact_person = "David Voellner (david.voellner@stud-mail.uni-wuerzburg.de)",
   data_content = "Static driver for PALM4U Munich City domain, 10 m resolution",
   location = "Munich, Germany",
@@ -147,3 +147,4 @@ config <- create_csd_configuration(
   buildings_3d = TRUE,
   generate_vegetation_patches = TRUE
 )
+
