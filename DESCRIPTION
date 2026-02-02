@@ -15,5 +15,4 @@ Imports:
     sf,
     terra,
     httr,
-    curl,
-    osmdata
+    curl
