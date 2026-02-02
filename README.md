@@ -8,14 +8,55 @@ PALM-4U is an advanced urban climate simulation model used for modeling atmosphe
 
 ## Features
 
-- **Download geospatial data**: Retrieve building footprints (LOD2), World Settlement Footprint data, and other relevant datasets
+- **Download geospatial data**: World Settlement Footprint data
 - **Preprocessing**: Clean, validate, and standardize geospatial data to PALM-4U requirements
 - **Rasterization**: Convert vector data (buildings, bridges, land cover) into raster formats compatible with PALM-4U
 - **Configuration management**: Create PALM-4U CSD (Static Driver Configuration) files
 - **Area of Interest (AOI) support**: Work with custom geographic areas defined by polygon boundaries
 
+
+## Features
+- Download function for the WSF Evolution tiles intersecting an AOI including merging and clipping to AOI
+- Reprojection, resampling, and clipping of raster datasets to a common grid
+- Automated land-cover reclassification to PALM surface types  
+- Processing of LOD2 data
+- Building classification by ALKIS codes and construction year (via WSF as proxy for construction year)  
+- Rasterization of buildings and bridges (type, ID, height)  
+- Export of GeoTIFFs following PALM static driver conventions  
+- Automatic generation of a YAML static driver configuration file  
+
+---
 ## Workflow Overview
 
+flowchart TD
+    A[Start: Input Data] --> B[Load AOI Polygon]
+    B --> C[Load Raster Data<br/>(DEM, Land Cover, WSF)]
+    C --> D[Process Rasters<br/>Reproject · Resample · Clip<br/>process_rasters()]
+    D --> E[Reclassify Land Cover<br/>to PALM Surface Types<br/>reclassify_lc_to_palm()]
+
+    B --> F[Load LOD2 Building Data]
+    F --> G[Process LOD2 Data<br/>Clip to AOI · Assign IDs · Split<br/>process_lod2()]
+    G --> H[Classify Buildings<br/>ALKIS + WSF Year<br/>assign_palm_building_type()]
+
+    E --> I[Rasterize Buildings<br/>Type · ID · Height<br/>rasterize_buildings_palm()]
+    H --> I
+
+    G --> J[Rasterize Bridges<br/>ID · Height<br/>rasterize_bridges_palm()]
+
+    D --> I
+    D --> J
+
+    I --> K[Export Building Rasters<br/>export_to_palm()]
+    J --> L[Export Bridge Rasters<br/>export_to_palm()]
+    E --> M[Export Land-Cover Rasters<br/>export_to_palm()]
+    D --> N[Export DEM<br/>export_to_palm()]
+
+    K --> O[Generate PALM Static Driver YAML<br/>create_csd_configuration()]
+    L --> O
+    M --> O
+    N --> O
+
+    O --> P[Ready-to-use PALM-4U Static Driver]
 
 
 ## Installation
