@@ -1,14 +1,12 @@
-# ===================================================================
+# --------------------------------------------------------------------
 # Download and Validation Utilities
-# ===================================================================
+# --------------------------------------------------------------------
 # Helper functions for downloading and validating spatial data (WSF,
 # rasters) and area-of-interest (AOI) objects used across the
 # PALMPrepR workflow.
-# ===================================================================
+# --------------------------------------------------------------------
 
-# -------------------------------------------------------------------
-# AOI Validation
-# -------------------------------------------------------------------
+# --- AOI Validation and Projection ---
 
 #' Validate AOI geometry
 #' @keywords internal
@@ -46,15 +44,13 @@
   }
 
   if (sf::st_is_longlat(aoi)) {
-    stop("AOI must be projected (EPSG:25832).", call. = FALSE)
+    stop("`aoi` must be projected (EPSG:25832).", call. = FALSE)
   }
 
   sf::st_transform(aoi, epsg)
 }
 
-# -------------------------------------------------------------------
-# WSF Tile Naming and Download
-# -------------------------------------------------------------------
+# --- WSF Tile Naming and Download ---
 
 #' Construct WSF Evolution tile filename from coordinates
 #' @keywords internal
@@ -64,7 +60,7 @@
 
 #' Download a single WSF Evolution raster tile
 #' @keywords internal
-.download_wsf_raster <- function(url) {
+.download_wsf_tile <- function(url) {
 
   tmp <- tempfile(fileext = ".tif")
 

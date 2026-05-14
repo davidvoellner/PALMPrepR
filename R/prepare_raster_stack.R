@@ -1,48 +1,43 @@
-# -------------------------------------------------------------------
 #' Reproject, clip, and resample rasters to a common grid.
 #'
-#' The resampling method is based on the name of the rasters in the
-#' *named* list of `terra::SpatRaster` objects.
-#' (LC or WSF --> nearest neighbour,
-#' else --> bilinear)
+#' The resampling method (bilinear or nearest neighbour) depends on
+#' the name of the `terra::SpatRaster` objects in the *named* list.
+#' (LC or WSF --> nearest neighbour, else --> bilinear)
 #'
 #' @param aoi An `sf` or `sfc` object defining the area of interest.
 #' @param target_epsg Integer EPSG code (e.g. 25832).
 #' @param resolution Target resolution in map units (e.g. meters).
-#' @param rasters A named list of `terra::SpatRaster` objects.
+#' @param data A named list of `terra::SpatRaster` objects.
 #' @param out_dir Optional output directory. If NULL, nothing is written
 #'   to disk and rasters are returned in memory.
 #'
 #' @return A named list of processed `terra::SpatRaster` objects.
 #'
 #' @export
-process_rasters <- function(
+prepare_raster_stack <- function(
     aoi,
     target_epsg,
     resolution,
-    rasters,
+    data,
     out_dir = NULL
 ) {
 
-  # ---------------------------------------------------------------
-  # Validation
-  # ---------------------------------------------------------------
-
+  # --- Validation ---
   if (!inherits(aoi, c("sf", "sfc"))) {
     stop("`aoi` must be an sf or sfc object.", call. = FALSE)
   }
 
-  if (!length(rasters)) {
-    stop("No input rasters provided.", call. = FALSE)
+  if (!length(data)) {
+    stop("No input data provided.", call. = FALSE)
   }
 
-  if (!all(vapply(rasters, inherits, logical(1), "SpatRaster"))) {
-    stop("All elements of `rasters` must be terra::SpatRaster objects.",
+  if (!all(vapply(data, inherits, logical(1), "SpatRaster"))) {
+    stop("All elements of `data` must be terra::SpatRaster objects.",
          call. = FALSE)
   }
 
-  if (is.null(names(rasters)) || any(names(rasters) == "")) {
-    stop("`rasters` must be a *named* list.", call. = FALSE)
+  if (is.null(names(data)) || any(names(data) == "")) {
+    stop("`data` must be a *named* list.", call. = FALSE)
   }
 
   if (!is.null(out_dir)) {
@@ -53,10 +48,7 @@ process_rasters <- function(
   message(" Target Resolution: ", resolution)
   message("==========================================================\n")
 
-  # ---------------------------------------------------------------
-  # Prepare AOI (terra-native CRS handling)
-  # ---------------------------------------------------------------
-
+  # --- Prepare AOI (terra-native CRS handling) ---
   aoi_vect <- terra::vect(aoi)
 
   aoi_vect <- terra::project(
@@ -65,10 +57,7 @@ process_rasters <- function(
   )
 
 
-  # ---------------------------------------------------------------
-  # Create reference grid (snapped to integer resolution)
-  # ---------------------------------------------------------------
-
+  # --- Create reference grid (snapped to integer resolution) ---
   raw_ext <- terra::ext(aoi_vect)
 
   snapped_ext <- .snap_extent(
@@ -82,17 +71,14 @@ process_rasters <- function(
     crs = paste0("EPSG:", target_epsg)
   )
 
-  # ---------------------------------------------------------------
-  # Process rasters
-  # ---------------------------------------------------------------
-
+  # --- Process rasters ---
   outputs <- list()
 
-  for (name in names(rasters)) {
+  for (name in names(data)) {
 
     message("- Processing ", name)
 
-    r <- rasters[[name]]
+    r <- data[[name]]
 
     # Determine resampling method
     method <- if (grepl("LC|WSF", name, ignore.case = TRUE)) {
@@ -145,7 +131,7 @@ process_rasters <- function(
     message("Processing ", name, " finished\n")
   }
 
-  message("All rasters processed successfully!")
+  message("All rasters of `data` processed successfully!")
 
   outputs
 }

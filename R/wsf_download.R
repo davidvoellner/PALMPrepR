@@ -1,15 +1,16 @@
-# Configuration
-
 BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
+# --------------------------------------------------------------------
+# WSF Download Utilities
+# --------------------------------------------------------------------
+# Helper functions for downloading WSF Evolution raster tiles intersecting
+# an AOI, mosaicking them, and clipping to the AOI.
+# -------------------------------------------------------------------- 
 
-# Internal helper functions
-
-# -------------------------------------------------------------------
 #' Download, merge, and clip WSF Evolution data to an AOI
 #'
 #' Downloads all WSF Evolution raster tiles (2×2 degree grid)
 #' intersecting an AOI, mosaics them, and clips the result
-#' exactly to the AOI.
+#' to the AOI.
 #'
 #' @param aoi An `sf` or `sfc` object defining the area of interest.
 #'
@@ -28,7 +29,9 @@ BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 #' }
 #'
 #' @export
-download_wsf_data <- function(aoi) {
+download_wsf_raster <- function(aoi) {
+  
+  BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 
   # --- validate AOI ---
   geom <- .validate_aoi(aoi)
@@ -77,7 +80,7 @@ download_wsf_data <- function(aoi) {
   rasters <- mapply(
     function(t, i) {
       url <- paste0(BASE_URL, .wsf_tile_name(t[1], t[2]))
-      rast <- .download_wsf_raster(url)
+      rast <- .download_wsf_tile(url)
       utils::setTxtProgressBar(pb, i)
       rast
     },

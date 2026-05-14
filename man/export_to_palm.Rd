@@ -2,20 +2,20 @@
 % Please edit documentation in R/export_palm.R
 \name{export_to_palm}
 \alias{export_to_palm}
-\title{Export rasters to GeoTIFF with PALM naming convention}
+\title{Export raster list to GeoTIFFs with PALM naming convention}
 \usage{
-export_to_palm(rasters, output_dir, prefix, resolution = NULL)
+export_to_palm(data, output_dir, prefix, resolution = NULL)
 }
 \arguments{
-\item{rasters}{A named list of \code{terra::SpatRaster} objects to export.
+\item{data}{A named list of \code{terra::SpatRaster} objects to export.
 Names become the object name in the output filename.}
 
 \item{output_dir}{Directory where TIF files will be saved.}
 
 \item{prefix}{A prefix for all output filenames (e.g., "MUC").}
 
-\item{resolution}{Spatial resolution in map units. If NULL, will be
-extracted from the first raster.}
+\item{resolution}{Spatial resolution in map units (e.g. Meters). If NULL,
+the resolution will be extracted from the first raster.}
 }
 \value{
 Invisibly returns a data frame with export details (filename, path).
@@ -34,9 +34,9 @@ building_list <- list(
 )
 
 export_to_palm(
-  rasters = building_list,
+  data = building_list,
   output_dir = "output",
-  prefix = "MUC",
+  prefix = "prefix",
   resolution = 10
 )
 }

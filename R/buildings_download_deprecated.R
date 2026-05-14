@@ -1,4 +1,3 @@
-# -------------------------------------------------------------------
 #' Download, merge, and clip LOD2 building tiles to AOI
 #'
 #' Downloads all intersecting Bavarian LOD2 CityGML tiles,

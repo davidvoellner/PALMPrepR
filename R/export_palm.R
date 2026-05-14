@@ -1,15 +1,14 @@
-# -------------------------------------------------------------------
-#' Export rasters to GeoTIFF with PALM naming convention
+#' Export raster list to GeoTIFFs with PALM naming convention
 #'
 #' Exports multiple raster layers to GeoTIFF files with a standardized
 #' naming convention: `{prefix}_{objectname}_{resolution}.tif`
 #'
-#' @param rasters A named list of `terra::SpatRaster` objects to export.
+#' @param data A named list of `terra::SpatRaster` objects to export.
 #'   Names become the object name in the output filename.
 #' @param output_dir Directory where TIF files will be saved.
 #' @param prefix A prefix for all output filenames (e.g., "MUC").
-#' @param resolution Spatial resolution in map units. If NULL, will be
-#'   extracted from the first raster.
+#' @param resolution Spatial resolution in map units (e.g. Meters). If NULL, 
+#' the resolution will be extracted from the first raster.
 #'
 #' @return Invisibly returns a data frame with export details (filename, path).
 #'
@@ -23,30 +22,28 @@
 #' )
 #'
 #' export_to_palm(
-#'   rasters = building_list,
+#'   data = building_list,
 #'   output_dir = "output",
-#'   prefix = "MUC",
+#'   prefix = "prefix",
 #'   resolution = 10
 #' )
 #' }
 #'
 #' @export
-export_to_palm <- function(rasters, output_dir, prefix, resolution = NULL) {
+export_to_palm <- function(data, output_dir, prefix, resolution = NULL) {
 
-  # ---------------------------------------------------------------
-  # Validation
-  # ---------------------------------------------------------------
+  # --- Validation ---
 
-  if (!is.list(rasters) || length(rasters) == 0) {
-    stop("`rasters` must be a non-empty named list.", call. = FALSE)
+  if (!is.list(data) || length(data) == 0) {
+    stop("`data` must be a non-empty named list of `terra::SpatRaster`.", call. = FALSE)
   }
 
-  if (is.null(names(rasters)) || any(names(rasters) == "")) {
-    stop("`rasters` must be a named list.", call. = FALSE)
+  if (is.null(names(data)) || any(names(data) == "")) {
+    stop("`data` must be a named list of `terra::SpatRaster`.", call. = FALSE)
   }
 
-  if (!all(vapply(rasters, inherits, logical(1), "SpatRaster"))) {
-    stop("All elements of `rasters` must be terra::SpatRaster objects.",
+  if (!all(vapply(data, inherits, logical(1), "SpatRaster"))) {
+    stop("All elements of `data` must be terra::SpatRaster objects.",
          call. = FALSE)
   }
 
@@ -54,19 +51,15 @@ export_to_palm <- function(rasters, output_dir, prefix, resolution = NULL) {
     dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   }
 
-  # ---------------------------------------------------------------
-  # Get resolution if not provided
-  # ---------------------------------------------------------------
+  # --- Get resolution if not provided ---
 
   if (is.null(resolution)) {
-    first_raster <- rasters[[1]]
+    first_raster <- data[[1]]
     res_vals <- terra::res(first_raster)
     resolution <- round(res_vals[1])  # Use first resolution value
   }
 
-  # ---------------------------------------------------------------
-  # Export each raster
-  # ---------------------------------------------------------------
+  # --- Export each raster ---
 
   export_info <- data.frame(
     objectname = character(0),
@@ -75,13 +68,13 @@ export_to_palm <- function(rasters, output_dir, prefix, resolution = NULL) {
     stringsAsFactors = FALSE
   )
 
-  for (i in seq_along(rasters)) {
-    objectname <- names(rasters)[i]
+  for (i in seq_along(data)) {
+    objectname <- names(data)[i]
     filename <- sprintf("%s_%s_%d.tif", prefix, objectname, resolution)
     filepath <- file.path(output_dir, filename)
 
     terra::writeRaster(
-      rasters[[i]],
+      data[[i]],
       filepath,
       overwrite = TRUE
     )
@@ -99,7 +92,7 @@ export_to_palm <- function(rasters, output_dir, prefix, resolution = NULL) {
     message("Exported: ", filename)
   }
 
-  message("\nAll rasters exported to: ", output_dir)
+  message("\nAll rasters successfully exported to: ", output_dir)
   invisible(export_info)
 
 }

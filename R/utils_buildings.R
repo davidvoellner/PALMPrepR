@@ -1,13 +1,11 @@
-# ===================================================================
+# --------------------------------------------------------------------
 # Building Processing Utilities
-# ===================================================================
+# --------------------------------------------------------------------
 # Helper functions for building data classification, geometry
 # normalization, and property assignment used across PALMPrepR.
-# ===================================================================
+# --------------------------------------------------------------------
 
-# -------------------------------------------------------------------
-# Building ID Assignment
-# -------------------------------------------------------------------
+# --- Building ID Assignment ---
 
 #' Add sequential IDs to building features
 #' @keywords internal
@@ -16,9 +14,7 @@
   x
 }
 
-# -------------------------------------------------------------------
-# Building/Bridge Separation
-# -------------------------------------------------------------------
+# --- Building/Bridge Separation ---
 
 #' Split buildings and bridges based on ALKIS function code
 #'
@@ -47,9 +43,7 @@
   )
 }
 
-# -------------------------------------------------------------------
-# Geometry Normalization
-# -------------------------------------------------------------------
+# --- Geometry Normalization ---
 
 #' Normalize geometry to MULTIPOLYGON
 #'
@@ -90,9 +84,7 @@
   }
 }
 
-# -------------------------------------------------------------------
-# PALM Building Type Classification
-# -------------------------------------------------------------------
+# --- PALM Building Type Classification ---
 
 #' Classify buildings into PALM types
 #'
