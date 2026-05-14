@@ -5,7 +5,7 @@ This R Package is the final submission of the Course "Introduction to Programmin
 
 PALMPrepR is an R package that provides a comprehensive workflow for downloading, preprocessing, and rasterizing geospatial datasets required to generate basic static driver input files for the **PALM-4U** urban climate model. A function to create the required configuration file for the PALM-specific static driver is included to simplify the workflow.
 
-This package is a work in progress. More features will come soon with functions supporting proper representation of  three-dimensional urban features (e.g. urban trees and LOD2 building data) through voxelization, more download and preprocessing functions of additional datasets (e.g. OSM), street types for parametrization of emissions, and reclassification functions for the whole PALM surface type palette.
+This package is a work in progress. More features will come soon with functions supporting proper representation of  three-dimensional urban features (e.g. urban trees and LOD2 building data) through voxelization, more download and preprocessing functions of additional datasets (e.g. OSM), street types for parametrization of emissions, and more flexible classification functions for other input classification schemes (e.g. CORINE Land Cover) and the whole palm surface type palette.
 
 
 ## Features
@@ -36,7 +36,7 @@ PALMPrepR requires the following R packages, which are shipped with the package:
 ## Main Functions
 
 ### Data Download
-- `download_wsf_data()` - Download World Settlement Footprint Evolution raster data
+- `download_wsf_raster()` - Download World Settlement Footprint Evolution raster data from [EOC Geoservice](https://geoservice.dlr.de/web/datasets/wsf_evo)
 
 ### Raster Processing
 - `process_lod2()` - Process LOD2 building data
@@ -113,7 +113,7 @@ flowchart TD
     %% =====================================================
     %% Raster Aggregation & Processing
     %% =====================================================
-    subgraph RASTER_PROC["Raster Aggregation & Processing"]
+    subgraph RASTER_PROC["Raster Processing"]
         RASTER_LIST@{shape: lean-r, label: "Raster List<br/>(DEM, LC, WSF)"}
         PROCESS_RASTERS@{shape: rect, label: "process_rasters()"}
         RASTER_PROCESSED@{shape: lean-r, label: "Processed Raster List"}
@@ -143,7 +143,7 @@ flowchart TD
     %% =====================================================
     %% Vector Processing (LOD2)
     %% =====================================================
-    subgraph VECTOR_PROC["Vector Processing (LOD2)"]
+    subgraph VECTOR_PROC["Vector Processing"]
         VECTOR_PROC_FN@{shape: rect, label: "process_lod2()"}
         BUILDINGS@{shape: lean-r, label: "Buildings"}
         BRIDGES@{shape: lean-r, label: "Bridges"}
@@ -212,7 +212,7 @@ flowchart TD
 For a more detailed documentation on individual functions, use the standard R help:
 
 ```r
-?function_name
+?function_name # or the F1-key as shortcut  
 ```
 
 ## License
