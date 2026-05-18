@@ -5,8 +5,7 @@ This R Package is was created as a final project for the course "Introduction to
 
 PALMPrepR is an R package that provides a comprehensive workflow for downloading, preprocessing, and rasterizing geospatial datasets required to create static driver input files for the **PALM-4U** urban climate model. A function to create the required configuration file for the PALM-specific static driver is included to simplify the data-transfer to a PALM-4U simulation.
 
-This package is a work in progress. More features will come soon with functions supporting proper representation of  three-dimensional urban features (e.g. urban trees and LOD2 building data) through voxelization, more download and preprocessing functions of additional datasets (e.g. OSM), street types for parametrization of emissions, and more flexible classification functions for other input classification schemes (e.g. CORINE Land Cover) and the whole palm surface type palette.
-
+This package is a work in progress. More features will come soon with functions supporting proper representation of three-dimensional urban features (e.g. urban trees and LOD2 building data) through voxelization, more download and preprocessing functions of additional datasets (e.g. OSM), street types for parametrization of emissions, and more flexible classification functions for other input classification schemes (e.g. CORINE Land Cover) and the whole palm surface type palette. Currently the tree download function is restricted to bavaria, as the bavarian open geodata portal is the only one implemented in the download options yet.
 
 ## Features
 - **Area of Interest (AOI) support**: Work with custom geographic areas defined by polygon boundaries
