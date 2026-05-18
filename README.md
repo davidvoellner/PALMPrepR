@@ -442,22 +442,34 @@ flowchart TD
 ```
 ---
 ## Documentation
-
 For a more detailed documentation on individual functions, use the standard R help:
 
 ```r
 ?function_name # or the F1-key as shortcut  
 ```
 
-## License
+For further documentation on the PALM-4U Model and it's input data please refer to:
 
+- [PALM Model System Documentation](https://docs.palm-model.org/25.10/) 
+
+## References
+- PALM-4U Model
+  https://palm.muk.uni-hannover.de/trac
+
+- World Settlement Footprint Evolution Dataset
+  https://geoservice.dlr.de/web/datasets/wsf_evo
+  © 2024 [DLR](https://www.dlr.de/en)
+
+- Bavarian Open Geodata Portal — "Einzelbäume"  
+  https://geodaten.bayern.de/opengeodata/OpenDataDetail.html?pn=einzelbaeume&active=DOWNLOAD
+  Bayerische Vermessungsverwaltung – www.geodaten.bayern.de
+
+
+## License
 This package is licensed under the GNU General Public License v3.0 or later. See [LICENSE.md](LICENSE.md) for details.
 
 ## Author
-
 David Voellner
 
-
 ## Contributing
-
 Contributions are welcome! Please feel free to submit issues or pull requests.
