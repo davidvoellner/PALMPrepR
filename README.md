@@ -145,24 +145,25 @@ lc  <- terra::rast(system.file("extdata", "LC_5.tif", package = "PALMPrepR"))
 dem <- terra::rast(system.file("extdata", "DEM_5.tif", package = "PALMPrepR"))
 ```
 
-### Download [World Settlement Footprint (WSF®) Evolution](https://geoservice.dlr.de/web/datasets/wsf_evo) tiles
+### Download [World Settlement Footprint (WSF®) Evolution](https://geoservice.dlr.de/web/datasets/wsf_evo) tiles and Tree data
 ```r
 wsf <- download_wsf_raster(aoi)
+trees <- download_trees(aoi)
 ```
 
 ### Process Raster Data
 ```r
-# Create named list of rasters for processing
+# Create named list of raster for processing
 raster_list <- list(
   dem = dem,
   lc  = lc,
   wsf = wsf
 )
 
-# Process list of rasters to common grid (10 m, EPSG:25832)
+# Process list of raster to common grid (10 m, EPSG:25832)
 resolution = 10
 target_epsg = 25832
-aligned_rasters <- prepare_raster_stack(
+aligned_raster <- prepare_raster_stack(
   aoi = aoi,
   target_epsg = target_epsg,
   resolution = resolution,
@@ -171,7 +172,7 @@ aligned_rasters <- prepare_raster_stack(
 
 # Reclassify Land Cover to PALM surface types
 lc_palm <- classify_lc_to_palm(
-  data = aligned_rasters$lc
+  data = aligned_raster$lc
 )
 ```
 
@@ -188,22 +189,29 @@ lod2 <- process_lod2(
 # Classify buildings by ALKIS codes and WSF construction year to PALM Building types
 lod2$buildings <- classify_buildings_to_palm(
   buildings = lod2$buildings,
-  wsf       = aligned_rasters$wsf
+  wsf       = aligned_raster$wsf
 )
 ```
 
 ### Rasterize data
 ```r
 # Rasterize building properties (type, ID, height)
-building_rasters <- rasterize_buildings_to_palm(
+building_raster <- rasterize_buildings_to_palm(
   buildings = lod2$buildings,
-  template  = aligned_rasters$dem
+  template  = aligned_raster$dem
 )
 
 # Rasterize bridge properties (ID, height)
-bridge_rasters <- rasterize_bridges_to_palm(
+bridge_raster <- rasterize_bridges_to_palm(
   bridges  = lod2$bridges,
-  template = aligned_rasters$dem
+  template = aligned_raster$dem
+)
+
+# Rasterize tree attributes (height, type)
+tree_raster <- rasterize_trees_to_palm(
+  trees = trees,
+  template = aligned_raster$dem,
+  tree_type = 0
 )
 ```
 
@@ -216,7 +224,7 @@ resolution <- 10 #just the suffix - does NOT affect the actual resolution
 
 # Export DEM (base raster)
 export_to_palm(
-  list(dem = aligned_rasters$dem),
+  list(dem = aligned_raster$dem),
   export_dir, prefix, resolution
 )
 
@@ -230,21 +238,30 @@ export_to_palm(
   export_dir, paste0(prefix, "_lc"), resolution
 )
 
-# Export building rasters
+# Export building raster
 export_to_palm(
   list(
-    building_type = building_rasters$type,
-    building_id = building_rasters$id,
-    building_height = building_rasters$height
+    building_type = building_raster$type,
+    building_id = building_raster$id,
+    building_height = building_raster$height
   ),
   export_dir, prefix, resolution
 )
 
-# Export bridge rasters
+# Export bridge raster
 export_to_palm(
   list(
-    bridge_id = bridge_rasters$id,
-    bridge_height = bridge_rasters$height
+    bridge_id = bridge_raster$id,
+    bridge_height = bridge_raster$height
+  ),
+  export_dir, prefix, resolution
+)
+
+# Export tree raster
+export_to_palm(
+  list(
+    tree_type = tree_raster$type,
+    tree_height = tree_raster$height
   ),
   export_dir, prefix, resolution
 )
@@ -303,9 +320,19 @@ flowchart TD
     %% WSF Acquisition
     %% =====================================================
     subgraph WSF_ACQ["WSF Data Acquisition"]
-        DL_WSF@{shape: rect, label: "download_wsf_data()"}
+        DL_WSF@{shape: rect, label: "download_wsf_raster()"}
         WSF_RAW@{shape: lean-r, label: "WSF Evolution Data"}
         AOI --> DL_WSF --> WSF_RAW
+    end
+
+    %% =====================================================
+    %% Tree Acquisition
+    %% =====================================================
+    subgraph TREE_ACQ["Tree Data Acquisition"]
+        DL_TREE@{shape: rect, label: "download_trees()"}
+        TREE_RAW@{shape: lean-r, label: "Tree Point Data"}
+
+        AOI --> DL_TREE --> TREE_RAW
     end
 
     %% =====================================================
@@ -313,12 +340,12 @@ flowchart TD
     %% =====================================================
     subgraph RASTER_PROC["Raster Processing"]
         RASTER_LIST@{shape: lean-r, label: "Raster List<br/>(DEM, LC, WSF)"}
-        PROCESS_RASTERS@{shape: rect, label: "process_rasters()"}
+        PROCESS_RASTER@{shape: rect, label: "prepare_raster_stack()"}
         RASTER_PROCESSED@{shape: lean-r, label: "Processed Raster List"}
 
         RASTER_SRC --> RASTER_LIST
         WSF_RAW --> RASTER_LIST
-        RASTER_LIST --> PROCESS_RASTERS --> RASTER_PROCESSED
+        RASTER_LIST --> PROCESS_RASTER --> RASTER_PROCESSED
 
         DEM@{shape: lean-r, label: "DEM"}
         LC@{shape: lean-r, label: "Land Cover (LC)"}
@@ -333,7 +360,7 @@ flowchart TD
     %% Land Cover Reclassification
     %% =====================================================
     subgraph LC_RECLASSIFY["Land Cover Reclassification"]
-        RECLASS_LC@{shape: rect, label: "reclassify_lc_to_palm()"}
+        RECLASS_LC@{shape: rect, label: "classify_lc_to_palm()"}
         LC_RECLASS@{shape: lean-r, label: "Reclassified Land Cover"}
         LC --> RECLASS_LC --> LC_RECLASS
     end
@@ -351,7 +378,7 @@ flowchart TD
         VECTOR_PROC_FN --> BUILDINGS
         VECTOR_PROC_FN --> BRIDGES
 
-        BUILD_TYPE@{shape: rect, label: "assign_palm_building_type()"}
+        BUILD_TYPE@{shape: rect, label: "classify_buildings_to_palm()"}
         BUILDINGS_PROC@{shape: lean-r, label: "Processed Buildings"}
 
         BUILDINGS --> BUILD_TYPE --> BUILDINGS_PROC
@@ -361,14 +388,17 @@ flowchart TD
     %% Rasterization
     %% =====================================================
     subgraph RASTERIZE["Rasterization"]
-        BUILD_RAST@{shape: rect, label: "rasterize_buildings_palm()"}
-        BRIDGE_RAST@{shape: rect, label: "rasterize_bridges_palm()"}
+        BUILD_RAST@{shape: rect, label: "rasterize_buildings_to_palm()"}
+        BRIDGE_RAST@{shape: rect, label: "rasterize_bridges_to_palm()"}
+        TREE_RAST@{shape: rect, label: "rasterize_trees_to_palm()"}
 
         BUILD_RASTD@{shape: lean-r, label: "Buildings Rasterized"}
         BRIDGES_RASTD@{shape: lean-r, label: "Bridges Rasterized"}
+        TREES_RASTD@{shape: lean-r, label: "Trees Rasterized"}
 
-        BUILDINGS_PROC --> BUILD_RAST --> BUILD_RASTD
-        BRIDGES --> BRIDGE_RAST --> BRIDGES_RASTD
+        BUILDINGS_PROC  --> BUILD_RAST  --> BUILD_RASTD
+        BRIDGES         --> BRIDGE_RAST --> BRIDGES_RASTD
+        TREE_RAW        --> TREE_RAST   --> TREES_RASTD
     end
 
     %% =====================================================
@@ -382,6 +412,7 @@ flowchart TD
         LC_RECLASS --> EXPORT
         BUILD_RASTD --> EXPORT
         BRIDGES_RASTD --> EXPORT
+        TREES_RASTD --> EXPORT
 
         EXPORT --> RAST_DIR
     end
@@ -391,7 +422,7 @@ flowchart TD
     %% =====================================================
     subgraph CONFIG["Static Driver Configuration"]
         CONFIG_INFO@{shape: sl-rect, label: "Configuration Parameters"}
-        CSD_CONFIG@{shape: rect, label: "create_csd_configuration()"}
+        CSD_CONFIG@{shape: rect, label: "build_csd_configuration()"}
         YML_FILE@{shape: lean-r, label: "Static Driver Configuration File"}
 
         CONFIG_INFO --> CSD_CONFIG --> YML_FILE
