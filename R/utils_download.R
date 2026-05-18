@@ -1,9 +1,8 @@
 # --------------------------------------------------------------------
 # Download and Validation Utilities
 # --------------------------------------------------------------------
-# Helper functions for downloading and validating spatial data (WSF,
-# rasters) and area-of-interest (AOI) objects used across the
-# PALMPrepR workflow.
+# Helper functions for downloading and validating spatial data (WSF
+# rasters, single tree data, etc.) based on AOI geometry and CRS.
 # --------------------------------------------------------------------
 
 # --- AOI Validation and Projection ---
@@ -74,4 +73,54 @@
   }
 
   terra::rast(tmp)
+}
+
+#' Load tree spatial index
+#' @keywords internal
+.load_tree_index <- function() {
+
+  path <- system.file(
+    "extdata",
+    "tree_index.gpkg",
+    package = "PALMPrepR"
+  )
+
+  if (!nzchar(path)) {
+    stop(
+      "Bundled tree index not found.",
+      call. = FALSE
+    )
+  }
+
+  sf::st_read(
+    path,
+    quiet = TRUE
+  )
+}
+
+#' Download one tree dataset
+#' @keywords internal
+.download_tree_dataset <- function(url) {
+
+  tmp <- tempfile(fileext = ".gpkg")
+
+  resp <- httr::GET(
+    url,
+    httr::write_disk(
+      tmp,
+      overwrite = TRUE
+    ),
+    httr::timeout(600)
+  )
+
+  if (httr::status_code(resp) != 200) {
+
+    stop(
+      "Failed to download dataset: ",
+      url,
+      call. = FALSE
+    )
+  }
+
+  tmp
 }
