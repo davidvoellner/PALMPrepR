@@ -13,10 +13,10 @@
 #'
 #' @export
 download_lod2_buildings <- function(
-    aoi,
-    cache_dir,
-    base_url = "https://download1.bayernwolke.de/a/lod2/citygml/",
-    target_epsg = 25832
+  aoi,
+  cache_dir,
+  base_url = "https://download1.bayernwolke.de/a/lod2/citygml/",
+  target_epsg = 25832
 ) {
 
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
