@@ -1,13 +1,13 @@
 #' Export raster list to GeoTIFFs with PALM naming convention
 #'
 #' Exports multiple raster layers to GeoTIFF files with a standardized
-#' naming convention: `{prefix}_{objectname}_{resolution}.tif`
+#' naming convention: `{prefix}_{objectname}_{suffix}.tif`
 #'
 #' @param data A named list of `terra::SpatRaster` objects to export.
 #'   Names become the object name in the output filename.
 #' @param output_dir Directory where TIF files will be saved.
 #' @param prefix A prefix for all output filenames (e.g., "MUC").
-#' @param resolution Spatial resolution in map units (e.g. Meters). If NULL,
+#' @param suffix Spatial resolution in map units (e.g. Meters). If NULL,
 #' the resolution will be extracted from the first raster.
 #'
 #' @return Invisibly returns a data frame with export details (filename, path).
@@ -25,12 +25,12 @@
 #'   data = building_list,
 #'   output_dir = "output",
 #'   prefix = "prefix",
-#'   resolution = 10
+#'   suffix = 10
 #' )
 #' }
 #'
 #' @export
-export_to_palm <- function(data, output_dir, prefix, resolution = NULL) {
+export_to_palm <- function(data, output_dir, prefix, suffix = NULL) {
 
   # --- Validation ---
 
@@ -53,10 +53,10 @@ export_to_palm <- function(data, output_dir, prefix, resolution = NULL) {
 
   # --- Get resolution if not provided ---
 
-  if (is.null(resolution)) {
+  if (is.null(suffix)) {
     first_raster <- data[[1]]
     res_vals <- terra::res(first_raster)
-    resolution <- round(res_vals[1])  # Use first resolution value
+    suffix <- round(res_vals[1])  # Use first resolution value
   }
 
   # --- Export each raster ---
@@ -70,7 +70,7 @@ export_to_palm <- function(data, output_dir, prefix, resolution = NULL) {
 
   for (i in seq_along(data)) {
     objectname <- names(data)[i]
-    filename <- sprintf("%s_%s_%d.tif", prefix, objectname, resolution)
+    filename <- sprintf("%s_%s_%d.tif", prefix, objectname, suffix)
     filepath <- file.path(output_dir, filename)
 
     terra::writeRaster(

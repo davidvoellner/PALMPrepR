@@ -4,7 +4,7 @@
 \alias{export_to_palm}
 \title{Export raster list to GeoTIFFs with PALM naming convention}
 \usage{
-export_to_palm(data, output_dir, prefix, resolution = NULL)
+export_to_palm(data, output_dir, prefix, suffix = NULL)
 }
 \arguments{
 \item{data}{A named list of \code{terra::SpatRaster} objects to export.
@@ -14,7 +14,7 @@ Names become the object name in the output filename.}
 
 \item{prefix}{A prefix for all output filenames (e.g., "MUC").}
 
-\item{resolution}{Spatial resolution in map units (e.g. Meters). If NULL,
+\item{suffix}{Spatial resolution in map units (e.g. Meters). If NULL,
 the resolution will be extracted from the first raster.}
 }
 \value{
@@ -22,7 +22,7 @@ Invisibly returns a data frame with export details (filename, path).
 }
 \description{
 Exports multiple raster layers to GeoTIFF files with a standardized
-naming convention: \verb{\{prefix\}_\{objectname\}_\{resolution\}.tif}
+naming convention: \verb{\{prefix\}_\{objectname\}_\{suffix\}.tif}
 }
 \examples{
 \dontrun{
@@ -37,7 +37,7 @@ export_to_palm(
   data = building_list,
   output_dir = "output",
   prefix = "prefix",
-  resolution = 10
+  suffix = 10
 )
 }
 
