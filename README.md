@@ -1,20 +1,20 @@
 # PALMPrepR
-This R Package is the final submission of the Course "Introduction to Programming and Geostatistics" within the [EAGLE Master's Program](https://eagle-science.org/).
+This R Package is was created as a final project for the course "Introduction to Programming and Geostatistics" on the [EAGLE Master's Program](https://eagle-science.org/).
 
 ## Overview
 
-PALMPrepR is an R package that provides a comprehensive workflow for downloading, preprocessing, and rasterizing geospatial datasets required to generate basic static driver input files for the **PALM-4U** urban climate model. A function to create the required configuration file for the PALM-specific static driver is included to simplify the workflow.
+PALMPrepR is an R package that provides a comprehensive workflow for downloading, preprocessing, and rasterizing geospatial datasets required to create static driver input files for the **PALM-4U** urban climate model. A function to create the required configuration file for the PALM-specific static driver is included to simplify the data-transfer to a PALM-4U simulation.
 
 This package is a work in progress. More features will come soon with functions supporting proper representation of  three-dimensional urban features (e.g. urban trees and LOD2 building data) through voxelization, more download and preprocessing functions of additional datasets (e.g. OSM), street types for parametrization of emissions, and more flexible classification functions for other input classification schemes (e.g. CORINE Land Cover) and the whole palm surface type palette.
 
 
 ## Features
 - **Area of Interest (AOI) support**: Work with custom geographic areas defined by polygon boundaries
-- **Download geospatial data**: Download WSF Evolution tiles intersecting an AOI including merging and clipping to AOI
+- **Download geospatial data**: Download WSF Evolution tiles and single tree locations intersecting an AOI including clipping to AOI
 - **Preprocessing**: Reprojection, resampling, and clipping of raster datasets to a common grid
 - **Reclassification** of land-cover data to PALM surface types
 - Building classification by **ALKIS** codes and construction year (via WSF as proxy for construction year)  
-- **Rasterization**: of vector data (buildings, bridges) into raster formats compatible with PALM-4U
+- **Rasterization** of vector data (buildings, bridges, trees) into raster formats compatible with PALM-4U
 - **Configuration management**: Generation of a YAML static driver configuration file for further processing with PALM-4U  
 
 ## Installation
@@ -37,6 +37,7 @@ PALMPrepR requires the following R packages, which are shipped with the package:
 
 ### Data Download
 - `download_wsf_raster()` - Download World Settlement Footprint Evolution raster data from [EOC Geoservice](https://geoservice.dlr.de/web/datasets/wsf_evo)
+- `download_trees()` - Download single tree location and height vector data from [geodaten.bayern.de](https://geodaten.bayern.de/opengeodata/OpenDataDetail.html?pn=einzelbaeume&active=DOWNLOAD)
 
 ### Raster Processing
 - `process_lod2()` - Process LOD2 building data
@@ -45,15 +46,85 @@ PALMPrepR requires the following R packages, which are shipped with the package:
 
 ### LOD2 Data Processing
 - `classify_buildings_to_palm` - Classify building types for PALM-4U
-- `rasterize_buildings_tp_palm()` - Rasterize building footprints with attributes
+- `rasterize_buildings_to_palm()` - Rasterize building footprints with attributes
 - `rasterize_bridges_to_palm()` - Process bridge data for PALM-4U
+
+### Tree Processing
+- `rasterize_trees_to_palm()` - Rasterize tree attribute for PALM-4U
 
 ### Static Driver Preparation
 - `export_to_palm()` - Export processed data to PALM-4U format
 - `build_csd_configuration()` - Create CSD configuration file
 
-![PALMPrepR Workflow](readme_plot.png)
+### Overview Exported Data
 
+<table>
+  <tr>
+    <th>DEM</th>
+    <th>Vegetation Type</th>
+    <th>Pavement Type</th>
+  </tr>
+  <tr>
+    <td>
+      <img src="img/dem.png" width="300">
+    </td>
+    <td>
+      <img src="img/lc_vegetation_type.png" width="300">
+    </td>
+    <td>
+      <img src="img/lc_pavement_type.png" width="300">
+    </td>
+  </tr>
+
+  <tr>
+    <th>Water Type</th>
+    <th>Building Height</th>
+    <th>Building Type</th>
+  </tr>
+  <tr>
+    <td>
+      <img src="img/lc_water_type.png" width="300">
+    </td>
+    <td>
+      <img src="img/building_height.png" width="300">
+    </td>
+    <td>
+      <img src="img/building_type.png" width="300">
+    </td>
+  </tr>
+
+  <tr>
+    <th>Building ID</th>
+    <th>Bridge Height</th>
+    <th>Bridge ID</th>
+  </tr>
+  <tr>
+    <td>
+      <img src="img/building_id.png" width="300">
+    </td>
+    <td>
+      <img src="img/bridge_height.png" width="300">
+    </td>
+    <td>
+      <img src="img/bridge_id.png" width="300">
+    </td>
+  </tr>
+
+  <tr>
+    <th>Tree Height</th>
+    <th>Tree Type</th>
+    <th></th>
+  </tr>
+  <tr>
+    <td>
+      <img src="img/tree_height.png" width="300">
+    </td>
+    <td>
+      <img src="img/tree_type.png" width="300">
+    </td>
+    <td></td>
+  </tr>
+</table>
 
 ## Example Workflow
 
