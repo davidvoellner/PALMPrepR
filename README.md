@@ -128,7 +128,7 @@ PALMPrepR requires the following R packages, which are shipped with the package:
 
 ## Example Workflow
 
-This example demonstrates a complete PALMPrepR workflow using sample data included in the package. The workflow processes building and raster data for a test area of interest and prepares it along a static driver configuration file to be further used as a PALM-specific static driver in microclimatic simulations.
+This example demonstrates a complete PALMPrepR workflow using sample data included in the package. The workflow downloads and processes data for a test area of interest and prepares it along a static driver configuration file to be further used as a PALM-specific static driver for microclimatic simulations.
 
 ### Load Package
 ```r
