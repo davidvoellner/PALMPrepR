@@ -7,7 +7,7 @@
 #'   Names become the object name in the output filename.
 #' @param output_dir Directory where TIF files will be saved.
 #' @param prefix A prefix for all output filenames (e.g., "MUC").
-#' @param resolution Spatial resolution in map units (e.g. Meters). If NULL, 
+#' @param resolution Spatial resolution in map units (e.g. Meters). If NULL,
 #' the resolution will be extracted from the first raster.
 #'
 #' @return Invisibly returns a data frame with export details (filename, path).

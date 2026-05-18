@@ -4,7 +4,7 @@ BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 # --------------------------------------------------------------------
 # Helper functions for downloading WSF Evolution raster tiles intersecting
 # an AOI, mosaicking them, and clipping to the AOI.
-# -------------------------------------------------------------------- 
+# --------------------------------------------------------------------
 
 #' Download, merge, and clip WSF Evolution data to an AOI
 #'
@@ -30,7 +30,7 @@ BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 #'
 #' @export
 download_wsf_raster <- function(aoi) {
-  
+
   BASE_URL <- "https://download.geoservice.dlr.de/WSF_EVO/files/"
 
   # --- validate AOI ---
@@ -76,7 +76,7 @@ download_wsf_raster <- function(aoi) {
   # --- download tiles with progress bar ---
   n_tiles <- length(tile_coords)
   pb <- utils::txtProgressBar(min = 0, max = n_tiles, style = 3)
-  
+
   rasters <- mapply(
     function(t, i) {
       url <- paste0(BASE_URL, .wsf_tile_name(t[1], t[2]))
@@ -88,7 +88,7 @@ download_wsf_raster <- function(aoi) {
     seq_along(tile_coords),
     SIMPLIFY = FALSE
   )
-  
+
   close(pb)
 
   # --- ensure rasters exist ---
