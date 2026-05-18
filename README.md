@@ -113,7 +113,7 @@ PALMPrepR requires the following R packages, which are shipped with the package:
   <tr>
     <th>Tree Height</th>
     <th>Tree Type</th>
-    <th></th>
+    <th>Configuration File</th>
   </tr>
   <tr>
     <td>
@@ -122,7 +122,9 @@ PALMPrepR requires the following R packages, which are shipped with the package:
     <td>
       <img src="img/tree_type.png" width="300">
     </td>
-    <td></td>
+    <td>
+      <a href="img/test_csd_configuration.yml">csd_configuration.yml</a>
+    </td>
   </tr>
 </table>
 
