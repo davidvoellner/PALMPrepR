@@ -10,11 +10,11 @@ This package is a work in progress. More features will come soon with functions 
 
 ## Features
 - **Area of Interest (AOI) support**: Work with custom geographic areas defined by polygon boundaries
-- **Download geospatial data**: Download WSF Evolution tiles and single tree locations intersecting an AOI including clipping to AOI
+- **Download geospatial data**: Download WSF Evolution tiles and single tree locations intersecting an AOI
 - **Preprocessing**: Reprojection, resampling, and clipping of raster datasets to a common grid
 - **Reclassification** of land-cover data to PALM surface types
-- Building classification by **ALKIS** codes and construction year (via WSF as proxy for construction year)  
-- **Rasterization** of vector data (buildings, bridges, trees) into raster formats compatible with PALM-4U
+- **Building classification** by ALKIS codes and construction year (via WSF as proxy for construction year)
+- **Rasterization** of vector data (buildings, bridges, trees) into raster data compatible with PALM-4U
 - **Configuration management**: Generation of a YAML static driver configuration file for further processing with PALM-4U  
 
 ## Installation
@@ -132,23 +132,26 @@ PALMPrepR requires the following R packages, which are shipped with the package:
 
 This example demonstrates a complete PALMPrepR workflow using sample data included in the package. The workflow downloads and processes data for a test area of interest and prepares it along a static driver configuration file to be further used as a PALM-specific static driver for microclimatic simulations.
 
-### Load Package
+### Load Packages
 ```r
 library(PALMPrepR)
+library(sf)
+library(terra)
 ```
 
 ### Load Sample Data
 ```r
 # AOI
-aoi <- sf::st_read(system.file("extdata", "aoi_10.gpkg", package = "PALMPrepR"))
+aoi <- st_read(system.file("extdata", "aoi_10.gpkg", package = "PALMPrepR"))
 
 # Load Landcover and DEM raster data
-lc  <- terra::rast(system.file("extdata", "LC_5.tif", package = "PALMPrepR"))
-dem <- terra::rast(system.file("extdata", "DEM_5.tif", package = "PALMPrepR"))
+lc  <- rast(system.file("extdata", "LC_5.tif", package = "PALMPrepR"))
+dem <- rast(system.file("extdata", "DEM_5.tif", package = "PALMPrepR"))
 ```
 
 ### Download [World Settlement Footprint (WSF®) Evolution](https://geoservice.dlr.de/web/datasets/wsf_evo) tiles and Tree data
 ```r
+# Download data
 wsf <- download_wsf_raster(aoi)
 trees <- download_trees(aoi)
 ```
@@ -180,6 +183,7 @@ lc_palm <- classify_lc_to_palm(
 
 ### Process Building Data
 ```r
+# Load example data
 lod2_data <- st_read(system.file("extdata", "lod2_multipolygon.gpkg", package = "PALMPrepR"))
 
 # Process LOD2 data: clip to AOI, assign IDs, split into buildings/bridges layers
