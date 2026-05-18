@@ -1,0 +1,51 @@
+attributes:
+  author: Author <author@example.com>
+  contact_person: Contact Person <contact@example.com>
+  acronym: test
+  comment: .na.character
+  data_content: Example Static Driver for PALM4U, 10 m resolution
+  location: Example Location
+  site: .na.character
+  institution: Example Institution
+  palm_version: .na.character
+  references: .na.character
+  source: .na.character
+  origin_time: 2026-05-18 11:30:02.756662
+settings:
+  epsg: 25832.0
+  season: summer
+output:
+  path: /test_static_driver
+  file_out: test_static_driver
+  version: 1.0
+input_root:
+  path: C:/Users/david/Desktop/palm_static_driver_export
+  file_out: test_static_driver
+  file_zt: .na.character
+  file_buildings_2d: test_building_height_10.tif
+  file_building_id: test_building_id_10.tif
+  file_building_type: test_building_type_10.tif
+  file_bridges_2d: .na.character
+  file_bridges_id: .na.character
+  file_vegetation_type: test_lc_vegetation_type_10.tif
+  file_vegetation_height: .na.character
+  file_tree_height: .na.character
+  file_tree_crown_diameter: .na.character
+  file_tree_trunk_diameter: .na.character
+  file_tree_type: .na.character
+  file_lai: .na.character
+  file_water_type: test_lc_water_type_10.tif
+  file_pavement_type: test_lc_pavement_type_10.tif
+  file_soil_type: .na.character
+domain_root:
+  pixel_size: 10.0
+  origin_x: 686750.0
+  origin_y: 5335300.0
+  nx: 39.0
+  ny: 39.0
+  dz: 10.0
+  bridge_depth: 3.0
+  buildings_3d: yes
+  street_trees: yes
+  overhanging_trees: yes
+  generate_vegetation_patches: yes
