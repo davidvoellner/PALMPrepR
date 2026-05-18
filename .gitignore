@@ -14,8 +14,8 @@
 # Private notes
 *.html
 
-# Testing script
-scripts/testing.R
+# Testing scripts
+scripts/*
 
 # Allow example datasets
 !inst/extdata/
