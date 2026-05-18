@@ -40,53 +40,180 @@ PALMPrepR requires the following R packages, which are shipped with the package:
 
 ### Raster Processing
 - `process_lod2()` - Process LOD2 building data
-- `process_rasters()` - Process raster datasets
-- `reclassify_lc_to_palm()` - Reclassify land cover data for PALM-4U
+- `prepare_raster_stack()` - Stack raster datasets using a common grid
+- `classify_lc_to_palm()` - Reclassify land cover data for PALM-4U
 
 ### LOD2 Data Processing
-- `assign_palm_building_type()` - Assign building type classifications
-- `rasterize_buildings_palm()` - Rasterize building footprints with attributes
-- `rasterize_bridges_palm()` - Process bridge data for PALM-4U
+- `classify_buildings_to_palm` - Classify building types for PALM-4U
+- `rasterize_buildings_tp_palm()` - Rasterize building footprints with attributes
+- `rasterize_bridges_to_palm()` - Process bridge data for PALM-4U
 
 ### Static Driver Preparation
 - `export_to_palm()` - Export processed data to PALM-4U format
-- `create_csd_configuration()` - Generate CSD configuration files
+- `build_csd_configuration()` - Create CSD configuration file
 
 ![PALMPrepR Workflow](readme_plot.png)
 
 
 ## Example Workflow
 
-This example demonstrates a complete PALMPrepR workflow using sample data included in the package. The workflow processes building and raster data for a test area of interest and prepares it along a static driver configuration file to be further processed as PALM-specific static driver.
+This example demonstrates a complete PALMPrepR workflow using sample data included in the package. The workflow processes building and raster data for a test area of interest and prepares it along a static driver configuration file to be further used as a PALM-specific static driver in microclimatic simulations.
 
-### Step 1: Load the Package and Sample Data
-
+### Load Package
 ```r
-
+library(PALMPrepR)
 ```
 
-### Step 2: Process Building Data
-
+### Load Sample Data
 ```r
+# AOI
+aoi <- sf::st_read(system.file("extdata", "aoi_10.gpkg", package = "PALMPrepR"))
 
+# Load Landcover and DEM raster data
+lc  <- terra::rast(system.file("extdata", "LC_5.tif", package = "PALMPrepR"))
+dem <- terra::rast(system.file("extdata", "DEM_5.tif", package = "PALMPrepR"))
 ```
 
-### Step 3: Process Raster Data
-
+### Download [World Settlement Footprint (WSF®) Evolution](https://geoservice.dlr.de/web/datasets/wsf_evo) tiles
 ```r
-
+wsf <- download_wsf_raster(aoi)
 ```
 
-### Step 4: Process Additional Features
-
+### Process Raster Data
 ```r
+# Create named list of rasters for processing
+raster_list <- list(
+  dem = dem,
+  lc  = lc,
+  wsf = wsf
+)
 
+# Process list of rasters to common grid (10 m, EPSG:25832)
+resolution = 10
+target_epsg = 25832
+aligned_rasters <- prepare_raster_stack(
+  aoi = aoi,
+  target_epsg = target_epsg,
+  resolution = resolution,
+  data = raster_list
+)
+
+# Reclassify Land Cover to PALM surface types
+lc_palm <- classify_lc_to_palm(
+  data = aligned_rasters$lc
+)
 ```
 
-### Step 5: Create CSD Configuration and Export
+### Process Building Data
+```r
+lod2_data <- st_read(system.file("extdata", "lod2_multipolygon.gpkg", package = "PALMPrepR"))
+
+# Process LOD2 data: clip to AOI, assign IDs, split into buildings/bridges layers
+lod2 <- process_lod2(
+  data = lod2_data,
+  aoi = aoi
+)
+
+# Classify buildings by ALKIS codes and WSF construction year to PALM Building types
+lod2$buildings <- classify_buildings_to_palm(
+  buildings = lod2$buildings,
+  wsf       = aligned_rasters$wsf
+)
+```
+
+### Rasterize data
+```r
+# Rasterize building properties (type, ID, height)
+building_rasters <- rasterize_buildings_to_palm(
+  buildings = lod2$buildings,
+  template  = aligned_rasters$dem
+)
+
+# Rasterize bridge properties (ID, height)
+bridge_rasters <- rasterize_bridges_to_palm(
+  bridges  = lod2$bridges,
+  template = aligned_rasters$dem
+)
+```
+
+### Export data
+```r
+# Export processed data to GeoTIFF with PALM naming convention
+export_dir <- "C:/Users/david/Desktop/palm_static_driver_export"
+prefix <- "test"
+resolution <- 10 #just the suffix - does NOT affect the actual resolution
+
+# Export DEM (base raster)
+export_to_palm(
+  list(dem = aligned_rasters$dem),
+  export_dir, prefix, resolution
+)
+
+# Export Land Cover surface types
+export_to_palm(
+  list(
+    vegetation_type = lc_palm$vegetation,
+    water_type = lc_palm$water,
+    pavement_type = lc_palm$pavement
+  ),
+  export_dir, paste0(prefix, "_lc"), resolution
+)
+
+# Export building rasters
+export_to_palm(
+  list(
+    building_type = building_rasters$type,
+    building_id = building_rasters$id,
+    building_height = building_rasters$height
+  ),
+  export_dir, prefix, resolution
+)
+
+# Export bridge rasters
+export_to_palm(
+  list(
+    bridge_id = bridge_rasters$id,
+    bridge_height = bridge_rasters$height
+  ),
+  export_dir, prefix, resolution
+)
+```
+### Create CSD Configuration and Export
 
 ```r
-
+# Build YAML static driver configuration file
+config_path <- build_csd_configuration(
+  prefix = prefix,
+  output_dir = export_dir,
+  
+  # --- Attributes ---
+  author = "Author <author@example.com>",
+  contact_person = "Contact Person <contact@example.com>",
+  acronym = prefix,
+  data_content = "Example Static Driver for PALM4U, 10 m resolution",
+  location = "Example Location",
+  institution = "Example Institution",
+  
+  # --- Settings ---
+  epsg = target_epsg,
+  season = "summer",
+  
+  # --- Output ---
+  output_path = paste0("/", prefix, "_static_driver"),
+  file_out = paste0(prefix, "_static_driver"),
+  version = 1,
+  
+  # --- Input root directory ---
+  input_root_path = export_dir,
+  
+  # --- Domain ---
+  pixel_size = resolution,
+  origin_x = 686750,
+  origin_y = 5335300,
+  nx = 39,
+  ny = 39,
+  dz = 10
+)
 ```
 ---
 ```mermaid
