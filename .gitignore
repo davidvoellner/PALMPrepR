@@ -17,5 +17,6 @@
 # Testing scripts
 scripts/*
 
-# Allow example datasets
-!inst/extdata/
+# Allow example datasets and img file
+!inst/extdata/*
+!img/*
