@@ -223,7 +223,7 @@ tree_raster <- rasterize_trees_to_palm(
 ### Export data
 ```r
 # Export processed data to GeoTIFF with PALM naming convention
-export_dir <- "C:/Users/david/Desktop/palm_static_driver_export"
+export_dir <- "<path_to>/static_driver_export"
 prefix <- "test"
 resolution <- 10 #just the suffix - does NOT affect the actual resolution
 
